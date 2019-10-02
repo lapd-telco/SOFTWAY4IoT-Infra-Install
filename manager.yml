@@ -50,7 +50,7 @@
         DEFAULT_API_KEY_IOT_AGENT : '123'
 
 
-        phisical_network_interface: ''
+        physical_network_interface: ''
         fiware_deploy: 'false'
         remove_etcd_data: 'false'
         # variável utilizada na construção da chave de conexão entre gt_manager e gateways
@@ -59,8 +59,8 @@
 
       # Validação de variáveis obrigatória
         - fail: 
-            msg: "É obrigatório informar o nome da interface física de rede do GatewayManager através da variável 'phisical_network_interface'"
-          when: phisical_network_interface == ''
+            msg: "É obrigatório informar o nome da interface física de rede do GatewayManager através da variável 'physical_network_interface'"
+          when: physical_network_interface == ''
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove todos as possíveis referências de uma instalação anterior Softway4IoT
@@ -93,6 +93,7 @@
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/certs
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/fiware
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
@@ -153,6 +154,7 @@
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/certs
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
@@ -367,19 +369,6 @@
               sudo mv ovs-docker /usr/bin
               chmod a+rwx /usr/bin/ovs-docker
 
-      # Transfere código do orquestrador
-        - name: Transfere código do orquestrador
-          copy: src=src dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
-        - name: Transfere app.py
-          copy: src=app.py dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
-        - name: Transfere app_orch.py
-          copy: src=app_orch.py dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
-        - name: Transfere config.py
-          copy: src=config.py dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
       # Implantação do WEBSm e API-Server via DockerHub
         - name: Instalação ETCD Container + APIServer Docker Container + WEBSM Docker Container. Pode demorar alguns minutos, aguarde!
           shell:  |
@@ -398,7 +387,7 @@
                 IFACE_LAN_CONTROL=c-control
                 IFACE_LAN_DATA=c-data
 
-                iface_wan={{ phisical_network_interface }}
+                iface_wan={{ physical_network_interface }}
 
                 # Params to configure NAT BR_DATA:
                 network_lan_data={{ NET_LAN_DATA }}
@@ -628,3 +617,46 @@
               ovs-ofctl add-flow br-data ip,nw_src={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
               sudo iptables -t nat -A PREROUTING -p tcp --dport {{ FIWARE_MANAGER_CONTAINER_PORT }} -j DNAT --to-destination {{ IP_FIWARE_MANAGER_CONTAINER }}:{{ FIWARE_MANAGER_CONTAINER_PORT }}
               
+      ###############################################################################
+      #####################   temporario - remover em breve #######################
+      ############################################################################
+      #############################################################################
+
+      # Transfere código do orquestrador
+        - name: Transfere código do orquestrador
+          copy: src=SOFTWAY4IoT-Orch/ dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+
+
+      # Transfere código do orquestrador
+        - name: Transfere código commom p/ o orquestrador
+          copy: src=SOFTWAY4IoT-F3-Common dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
+
+      # Transfere código do netmanager
+        - name: Transfere código do NetManager
+          copy: src=SOFTWAY4IoT-NetManager/ dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
+
+      # Instala dependências do orquestrador   <-- REMOVER
+        - name: Roda o Orquestrador
+          shell: |
+              pip3 install docker==4.0.2
+              pip3 install pyyaml==5.1.2
+              pip3 install etcd3==0.10.0
+              pip3 install jsonlib-python3==1.6.1
+              pip3 install apscheduler==3.5.3
+              pip3 install marshmallow==3.0.0rc3
+              pip3 install -e git+file:/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
+              python3 app.py &
+          args:
+            chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+
+      
+        - name: Roda o NetManager
+          shell: |
+              pip3 install scapy
+              pip3 install ConfigParser
+              pip3 install apscheduler==3.5.3
+              pip3 install ryu
+              sudo python3 app.py &
+          args:
+            chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
+
