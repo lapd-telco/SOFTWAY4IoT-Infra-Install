@@ -38,7 +38,7 @@
         
         #porta que será exposta e redirecionada para a porta em que o container WEBsm está respondendo, geralmente 443
         WEBSM_EXTERNAL_ACESS_PORT : '8080'
-
+        NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/instaladores/net-manager_1.0.0_amd64.deb'
 
         #INTEGRAÇÃO FIWARE
         IOT_AGENT_SOUTH_PORT : '7896'
@@ -84,6 +84,7 @@
               iptables --table nat --flush
               iptables --delete-chain
               iptables --table nat --delete-chain
+              sudo dpkg --remove net-manager
 
       # Remove diretórios Softway
         - name : Remove diretório de instalação Softway4IoT
@@ -91,6 +92,7 @@
           ignore_errors: yes
           shell:  |
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/downloads
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
               rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
@@ -143,6 +145,7 @@
               name: 
                 - docker
                 - PyYAML
+                - uuid
               executable: pip3
      
       # Diretório de configuração Softway
@@ -152,6 +155,7 @@
           shell:  |
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/downloads
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
@@ -617,6 +621,7 @@
               ovs-ofctl add-flow br-data ip,nw_src={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
               sudo iptables -t nat -A PREROUTING -p tcp --dport {{ FIWARE_MANAGER_CONTAINER_PORT }} -j DNAT --to-destination {{ IP_FIWARE_MANAGER_CONTAINER }}:{{ FIWARE_MANAGER_CONTAINER_PORT }}
               
+
       ###############################################################################
       #####################   temporario - remover em breve #######################
       ############################################################################
@@ -631,9 +636,6 @@
         - name: Transfere código commom p/ o orquestrador
           copy: src=SOFTWAY4IoT-F3-Common dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
 
-      # Transfere código do netmanager
-        - name: Transfere código do NetManager
-          copy: src=SOFTWAY4IoT-NetManager/ dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
 
       # Instala dependências do orquestrador   <-- REMOVER
         - name: Roda o Orquestrador
@@ -649,14 +651,37 @@
           args:
             chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
 
-      
-        - name: Roda o NetManager
+
+
+      ####################################################################
+      ####################################################################
+      #########     IMPLANTAÇÃO NETMANGER + ORQUESTRADOR      ############
+      ####################################################################
+      ####################################################################
+
+      # Download NetManager
+        - name: Download NetManger
+          get_url: 
+            url="{{ NET_MANAGER_DEB_URL }}"
+            dest="/etc/{{ DIR_INSTALL_SOFTWAY }}/downloads/netmanager.deb"
+
+      # Instalação NetManager
+        - name: Instalação NetManger
+          apt: deb="/etc/{{ DIR_INSTALL_SOFTWAY }}/downloads/netmanager.deb"
+          sudo: true
+
+      # Atribuição de permissões NetManager
+        - name: Atribuição de permissões NetManager
           shell: |
-              pip3 install scapy
-              pip3 install ConfigParser
-              pip3 install apscheduler==3.5.3
-              pip3 install ryu
-              sudo python3 app.py &
-          args:
-            chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
+              echo 'labora ALL=(ALL:ALL) NOPASSWD:/usr/bin/ovs-docker
+              labora ALL=(ALL:ALL) NOPASSWD:/usr/bin/ovs-vsctl
+              labora ALL=(ALL:ALL) NOPASSWD:/sbin/iptables' | sudo EDITOR='tee -a' visudo
+
+      # Inicializa NetManager
+        - name: Inicializa NetManager
+          shell: |
+              sudo /etc/init.d/net-manager start
+
+      
+        
 

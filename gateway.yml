@@ -5,10 +5,13 @@
         DIR_INSTALL_SOFTWAY: 'softway4iot'
         GATEWAY_URL_REGISTER: '/v1/'
         FLESK_PORT_MANAGER: 5000
+        IP_ETCD_CONTAINER: '10.250.1.4'
         
-        phisical_network_interface: ''
+        physical_network_interface: ''
         ip_gateway_manager: '' 
+        gateway_manager_token_acess: '' 
         number_gateway_controll: ''
+        fiware_deploy: 'false'
         fiware_deploy: 'false'
 
         # variável utilizada na construção da chave de conexão entre gt_manager e gateways
@@ -22,8 +25,13 @@
 
       # Validação de variáveis obrigatória
         - fail: 
-            msg: "É obrigatório informar o nome da interface física de rede do GatewayManager através da variável 'phisical_network_interface'"
-          when: phisical_network_interface == ''
+            msg: "É obrigatório informar o token de acesso ao GatewayManager através da variável 'gateway_manager_token_acess'. Este parâmetro pode ser obtido no WebSM"
+          when: gateway_manager_token_acess == ''
+
+      # Validação de variáveis obrigatória  
+        - fail: 
+            msg: "É obrigatório informar o nome da interface física de rede do GatewayManager através da variável 'physical_network_interface'"
+          when: physical_network_interface == ''
 
       # Validação de variáveis obrigatória
         - fail: 
@@ -48,12 +56,12 @@
               sudo apt-get auto-remove -y --purge openvswitch-switch
               sudo  apt-get purge -y docker-engine docker docker.io docker-ce  
               sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce 
-              rm -rf /var/lib/docker /etc/docker
-              rm /etc/apparmor.d/docker
+              sudo rm -rf /var/lib/docker /etc/docker
+              sudo rm /etc/apparmor.d/docker
               groupdel docker
-              rm -rf /var/run/docker.sock
-              rm -rf /etc/softway4iot
-              rm -r /usr/bin/ovs-docker
+              sudo rm -rf /var/run/docker.sock
+              sudo rm -rf /etc/softway4iot
+              sudo rm -r /usr/bin/ovs-docker
               iptables --flush
               iptables --table nat --flush
               iptables --delete-chain
@@ -64,11 +72,12 @@
           become: yes
           shell:  |
               sudo apt update
-              apt install python3-pip -y
-              apt install python - y
-              apt install python-minimal python-simplejson -y
-              apt install python-setuptools -y
-              apt install python-pip -y
+              sudo apt install python3-pip -y
+              sudo apt install python - y
+              sudo apt install python-minimal python-simplejson -y
+              sudo apt install python-setuptools -y
+              sudo apt install python-pip -y
+
 
       # Atualização de pacotes do SO via APT
         - name: Atualiza pacotes via APT
@@ -84,7 +93,7 @@
               name: ['wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
               update_cache: yes
 
-        # Install Pytohn2 apis
+      # Install Pytohn2 apis
         - name: Instala dependências python2 via PIP
           pip:
               name: 
@@ -96,6 +105,8 @@
               name: 
                 - docker
                 - PyYAML
+                - urllib3
+                - requests
               executable: pip3
 
       # Diretório de configuração Softway
@@ -110,6 +121,14 @@
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/orch
               sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
      
+     # Construção do arquivo de configuração
+        - name: Constroi o arquivo de configuração softway gateway
+          copy:
+            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
+            content: |
+                NUMBER_GATEWAY_CONTROLL={{ number_gateway_controll }}
+                PHYSICAL_NETWORK_INTERFACE={{ physical_network_interface }}
+
       #Adiciona chaves + repositório Docker
         - name: Adiciona Docker GPG key
           apt_key: url=https://download.docker.com/linux/ubuntu/gpg
@@ -142,7 +161,7 @@
                 IFACE_LAN_CONTROL=c-control
                 IFACE_LAN_DATA=c-data
 
-                iface_wan={{ phisical_network_interface }}
+                iface_wan={{ physical_network_interface }}
 
                 # Params to configure NAT BR_DATA:
                 network_lan_data=10.249.{{ number_gateway_controll }}.1/16
@@ -194,17 +213,26 @@
           shell:  |
               ovs-vsctl add-port br-data vxlan_data -- set Interface vxlan_data type=gre options:remote_ip={{ ip_gateway_manager }}
               ovs-vsctl add-port br-control vxlan_control -- set Interface vxlan_control type=vxlan options:remote_ip={{ ip_gateway_manager }}
-      
 
-       # Transfere código do orquestrador GW
+      # Transfere código do orquestrador GW
         - name: Transfere código do Orquestrador GW
           copy: src=SOFTWAY4IoT-Orch-gw/ dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
 
-      # Resquisição post p/ implentação do GatewayManager        
-      #  - name: Habilitar Gateway
-      #    shell:  |
-      #        curl -d '{"id":" {{ number_gateway_controll }} ", "ip":" {{ ansible_default_ipv4.address }} "}' -H "Content-Type: application/json" -X POST https://{{ ip_gateway_manager }}:{{ FLESK_PORT_MANAGER }}{{ GATEWAY_URL_REGISTER }}
-              
-      
-      
-         
+        - debug:
+            msg: python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
+
+      # Transfere código do orquestrador
+        - name: Transfere código commom p/ o orquestrador
+          copy: src=SOFTWAY4IoT-F3-Common dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
+
+      # Lib DataBase
+        - name: Gera LIB DataBase
+          shell: |
+              pip3 install -e git+file:/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
+
+      # Executa o orquestrador do Gateway
+        - name: Roda o Orquestrador
+          shell: |
+              python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
+          args:
+            chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
