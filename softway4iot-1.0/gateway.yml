@@ -2,6 +2,7 @@
 -   hosts: gateway
     become: yes
     vars:
+        BASE_DIR_INSTALL: 'opt'
         DIR_INSTALL_SOFTWAY: 'softway4iot'
         GATEWAY_URL_REGISTER: '/v1/'
         FLESK_PORT_MANAGER: 5000
@@ -113,18 +114,19 @@
         - name : Construção dos diretórios do Softway
           become: yes
           shell:  |
-              sudo rm -r /etc/{{ DIR_INSTALL_SOFTWAY }}
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/certs
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/orch
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
+              sudo rm -r /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
      
      # Construção do arquivo de configuração
         - name: Constroi o arquivo de configuração softway gateway
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
             content: |
                 NUMBER_GATEWAY_CONTROLL={{ number_gateway_controll }}
                 PHYSICAL_NETWORK_INTERFACE={{ physical_network_interface }}
@@ -153,7 +155,7 @@
       # Construção do arquivo para Setup da Rede
         - name: Constroi o arquivo para Setup da Rede
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh"
             content: |
                 #!/bin/bash
 
@@ -205,8 +207,8 @@
       # Executa script que realiza o Setup inicial da rede
         - name: Setup inicial da Rede
           shell:  |
-              sudo chmod +x /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
-              sudo /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
 
       # Construção de tunel de comunicação entre Gateway e GatewayManager
         - name: Construção de tunel de comunicação entre Gateway e GatewayManager
@@ -216,23 +218,23 @@
 
       # Transfere código do orquestrador GW
         - name: Transfere código do Orquestrador GW
-          copy: src=SOFTWAY4IoT-Orch-gw/ dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+          copy: src=SOFTWAY4IoT-Orch-gw/ dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
 
         - debug:
             msg: python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
 
       # Transfere código do orquestrador
         - name: Transfere código commom p/ o orquestrador
-          copy: src=SOFTWAY4IoT-F3-Common dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
+          copy: src=SOFTWAY4IoT-F3-Common dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
 
       # Lib DataBase
         - name: Gera LIB DataBase
           shell: |
-              pip3 install -e git+file:/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
+              pip3 install -e git+file:/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
 
       # Executa o orquestrador do Gateway
         - name: Roda o Orquestrador
           shell: |
               python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
           args:
-            chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+            chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch

@@ -4,6 +4,7 @@
     vars:
         
         API_SERVE_PORT: '5000'
+        BASE_DIR_INSTALL : "etc"
         DIR_INSTALL_SOFTWAY: 'softway4iot'
         NET_LAN_DATA: '10.249.1.1/16'
         NET_LAN_CONTROL: '10.250.1.1/16'
@@ -38,8 +39,10 @@
         
         #porta que será exposta e redirecionada para a porta em que o container WEBsm está respondendo, geralmente 443
         WEBSM_EXTERNAL_ACESS_PORT : '8080'
+        
         NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/instaladores/net-manager_1.0.0_amd64.deb'
-
+        ORQUESTRADOR_DEB_URL: https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/instaladores/orch_1.0.0_amd64.deb
+        
         #INTEGRAÇÃO FIWARE
         IOT_AGENT_SOUTH_PORT : '7896'
         IOT_AGENT_NORTH_PORT : '4041'
@@ -91,14 +94,15 @@
           become: yes
           ignore_errors: yes
           shell:  |
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/downloads
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/certs
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/fiware
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
 
       # Remove diretório de dados ETCD
         - name : Remove volume de dados ETCD
@@ -106,7 +110,7 @@
           ignore_errors: yes
           when: remove_etcd_data == 'true'
           shell:  |
-              rm -rf  /etc/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
 
       # Instala os requisitos mínimos de python para o correto funcionamento do Ansible
         - name : Instala os requisitos mínimos de python para o correto funcionamento das demais tasks
@@ -138,6 +142,11 @@
           pip:
               name: 
                 - setuptools
+                - docker==4.0.2
+                - pyyaml==5.1.2
+                - etcd3==0.10.0
+                - jsonlib-python3==1.6.1
+                - marshmallow==3.0.0rc3
 
       # Install Pytohn3 apis
         - name: Instala dependências python3 via PIP
@@ -153,22 +162,23 @@
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/downloads
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/certs
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/netmanager
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
 
       #Cria arquivo de dados ETCD
-        - stat: path=/etc/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db
           register: p
 
         - name: Cria arquivo de dados ETCD
-          file: path=/etc/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db 
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db 
                 owner=root
                 group=sys
                 mode=0555
@@ -191,7 +201,7 @@
       # Construção do arquivo responsável por construir as chaves de acesso DOCKER
         - name: Constroi o arquivo para criação das chaves DOCKER
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh"
             content: |
                 #!/bin/bash
                 #see https://docs.docker.com/engine/security/https/
@@ -242,7 +252,7 @@
                 echo "Mode $MODE"
                 echo "Host/Clientname $NAME"
                 echo "Host IP $SERVERIP"
-                echo "Targetdir /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs"
+                echo "Targetdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs"
                 echo "Expiration $EXPIRATIONDAYS"
 
                 programname=$0
@@ -260,16 +270,16 @@
                 }
 
                 function createCA {
-                    openssl genrsa -aes256 -passout pass:$PASSWORD -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem 4096
-                    openssl req -passin pass:$PASSWORD -new -x509 -days $EXPIRATIONDAYS -key /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -sha256 -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -subj $CASUBJSTRING
+                    openssl genrsa -aes256 -passout pass:$PASSWORD -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem 4096
+                    openssl req -passin pass:$PASSWORD -new -x509 -days $EXPIRATIONDAYS -key /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -sha256 -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -subj $CASUBJSTRING
                     
-                    chmod 0400 /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem
-                    chmod 0444 /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem
+                    chmod 0400 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem
+                    chmod 0444 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem
                 }
 
                 function checkCAFilesExist {
-                    if [[ ! -f "/etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem" || ! -f "/etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem" ]]; then
-                        echo "/etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem or /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem not found. Create CA first with '-m ca'"
+                    if [[ ! -f "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem" || ! -f "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem" ]]; then
+                        echo "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem or /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem not found. Create CA first with '-m ca'"
                         exit 1
                     fi
                 }
@@ -283,38 +293,38 @@
                         IPSTRING=",IP:$SERVERIP"
                     fi
 
-                    openssl genrsa -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem 4096
-                    openssl req -subj "/CN=$NAME" -new -key /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr
-                    echo "subjectAltName = DNS:$NAME$IPSTRING" > /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
-                    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr -CA /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -CAkey /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -CAcreateserial -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem -extfile /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+                    openssl genrsa -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem 4096
+                    openssl req -subj "/CN=$NAME" -new -key /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr
+                    echo "subjectAltName = DNS:$NAME$IPSTRING" > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+                    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr -CA /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -CAkey /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -CAcreateserial -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem -extfile /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
 
-                    rm /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.srl
-                    chmod 0400 /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem
-                    chmod 0444 /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem
+                    rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.srl
+                    chmod 0400 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem
+                    chmod 0444 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem
                 }
 
                 function createClientCert {
                     checkCAFilesExist
 
-                    openssl genrsa -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem 4096
-                    openssl req -subj "/CN=$NAME" -new -key /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr
-                    echo "extendedKeyUsage = clientAuth" > /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
-                    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr -CA /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -CAkey /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -CAcreateserial -out /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem -extfile /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+                    openssl genrsa -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem 4096
+                    openssl req -subj "/CN=$NAME" -new -key /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr
+                    echo "extendedKeyUsage = clientAuth" > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+                    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr -CA /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -CAkey /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -CAcreateserial -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem -extfile /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
 
-                    rm /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.srl
-                    chmod 0400 /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem
-                    chmod 0444 /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem
+                    rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.srl
+                    chmod 0400 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem
+                    chmod 0444 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem
 
-                    mv /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-$NAME-key.pem
-                    mv /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-$NAME-cert.pem 
+                    mv /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-$NAME-key.pem
+                    mv /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-$NAME-cert.pem 
                 }
 
 
-                if [[ -z $MODE || ($MODE != "ca" && -z $NAME) || -z $PASSWORD || -z /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs ]]; then
+                if [[ -z $MODE || ($MODE != "ca" && -z $NAME) || -z $PASSWORD || -z /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs ]]; then
                     usage   
                 fi
 
-                mkdir -p /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+                mkdir -p /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
 
                 if [[ $MODE = "ca" ]]; then 
                     createCA
@@ -329,7 +339,7 @@
       # Construção do arquivo para gerar as chaves da VPN
         - name: Constroi as chaves VPN
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh"
             content: |
                 cat >> /etc/sysctl.conf << EOF
                   net.ipv4.ip_forward = 1
@@ -340,7 +350,7 @@
                 sysctl -p /etc/sysctl.conf
 
                 # Generate Preshared Key:
-                openssl rand -base64 64 > /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/keys
+                openssl rand -base64 64 > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/keys
 
                 cat >> ipsec.conf << EOF
                 # basic configuration
@@ -363,8 +373,8 @@
       # Execução do script responsável por gerar as chaves da VPN
         - name: Gera as chaves VPN
           shell:  |
-              sudo chmod +x /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh
-              sudo /etc/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh
 
       # Download e instalação OVS-DOCKER
         - name : Download e instalação OVS-Docker
@@ -378,12 +388,12 @@
           shell:  |
               docker run --net=none --name={{ API_SERVER_CONTAINER_NAME }} -d sw4iot/apiserver:1.0
               docker run --net=none --name={{ WEBSM_CONTAINER_NAME }} -d sw4iot/websm:1.0
-              docker run --net=none -v /etc/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db:/sw4iot/member/snap/db --name={{ ETCD_CONTAINER_NAME }} -d sw4iot/etcd:1.0 
+              docker run --net=none -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db:/sw4iot/member/snap/db --name={{ ETCD_CONTAINER_NAME }} -d sw4iot/etcd:1.0 
 
       # Construção do arquivo para Setup da Rede
         - name: Constroi o arquivo para Setup da Rede
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh"
             content: |
                 #!/bin/bash
 
@@ -435,8 +445,8 @@
       # Executa script que realiza o Setup inicial da rede
         - name: Setup inicial da Rede
           shell:  |
-              sudo chmod +x /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
-              sudo /etc/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
 
       # Configurações de Rede p/ Container ETCD
         - name: Configurações de Rede p/ Container ETCD
@@ -469,10 +479,10 @@
       # Gera as chaves do DOCKER necessárias para o comunicação entre Orquestrador e Gateways
         - name: Gera as chaves do DOCKER necessárias para o comunicação entre Orquestrador e Gateways
           shell:  |
-              sudo chmod +x /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh 
-              sudo /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m ca -pw {{ password_gateways_connection }} -t certs -e 1000000
-              sudo /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m server -h softway4iot.labora.inf.ufg.br -pw {{ password_gateways_connection }} -t certs -e 1000000
-              sudo /etc/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m client -h softway4iot-gatweway -pw {{ password_gateways_connection }} -t certs -e 1000000
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh 
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m ca -pw {{ password_gateways_connection }} -t certs -e 1000000
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m server -h softway4iot.labora.inf.ufg.br -pw {{ password_gateways_connection }} -t certs -e 1000000
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m client -h softway4iot-gatweway -pw {{ password_gateways_connection }} -t certs -e 1000000
       
       ####################################################################
       ####################################################################
@@ -485,14 +495,14 @@
           become: yes
           when: fiware_deploy == 'true'
           shell:  |
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/fiware
-              sudo mkdir /etc/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager
 
       # Arquivo de configuração IOTAgent
         - name: Constroi o arquivo de configuração do IOTAgent
           when: fiware_deploy == 'true'
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/fiware/config.js"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/config.js"
             content: |
               
                 var config = {};
@@ -554,7 +564,7 @@
         - name : Implantação IOTAgent via Docker Container
           when: fiware_deploy == 'true'
           shell:  |
-              docker run --net=none --init -v /etc/{{ DIR_INSTALL_SOFTWAY }}/fiware/config.js:/opt/iotajson/config.js  --name={{ IO_AGENT_CONTAINER_NAME }} -d fiware/iotagent-json -- config.js
+              docker run --net=none --init -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/config.js:/opt/iotajson/config.js  --name={{ IO_AGENT_CONTAINER_NAME }} -d fiware/iotagent-json -- config.js
       
       # Configura conexão do Container IOTAgent via ovs-docker
         - name: Configura conexão do Container IOTAgent via ovs-docker
@@ -575,7 +585,7 @@
         - name: Constroi o arquivo de configuração do Fiware-Manager
           when: fiware_deploy == 'true'
           copy:
-            dest: "/etc/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js"
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js"
             content: |
               
                 managerConfig = {
@@ -607,7 +617,7 @@
         - name : Implantação Fiware-Manager via Docker Container
           when: fiware_deploy == 'true'
           shell:  |
-              docker run --net=none --init -v /etc/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js:/SOFTWAY4IoT-F3-FiwareManager/config.js  --name={{ FIWARE_MANAGER_CONTAINER_NAME }} -d sw4iot/softway4iot-f3-fiwaremanager:1.0
+              docker run --net=none --init -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js:/SOFTWAY4IoT-F3-FiwareManager/config.js  --name={{ FIWARE_MANAGER_CONTAINER_NAME }} -d sw4iot/softway4iot-f3-fiwaremanager:1.0
        
       # Configura conexão do Container IOTAgent via ovs-docker
         - name: Configura conexão do Container Fiware-Manager via ovs-docker
@@ -626,31 +636,11 @@
       #####################   temporario - remover em breve #######################
       ############################################################################
       #############################################################################
-
-      # Transfere código do orquestrador
-        - name: Transfere código do orquestrador
-          copy: src=SOFTWAY4IoT-Orch/ dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
-
-      # Transfere código do orquestrador
-        - name: Transfere código commom p/ o orquestrador
-          copy: src=SOFTWAY4IoT-F3-Common dest=/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
-
-
-      # Instala dependências do orquestrador   <-- REMOVER
-        - name: Roda o Orquestrador
+      
+      #Gera Dependência do Softway - Commons   <-- REMOVER
+        - name: Gera Dependência do Softway - Commons
           shell: |
-              pip3 install docker==4.0.2
-              pip3 install pyyaml==5.1.2
-              pip3 install etcd3==0.10.0
-              pip3 install jsonlib-python3==1.6.1
-              pip3 install apscheduler==3.5.3
-              pip3 install marshmallow==3.0.0rc3
-              pip3 install -e git+file:/etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
-              python3 app.py &
-          args:
-            chdir: /etc/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
+              pip3 install -e git+file:/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
 
 
       ####################################################################
@@ -659,15 +649,26 @@
       ####################################################################
       ####################################################################
 
+      # Download do Orquestrador
+        - name: Download Orquestrador
+          get_url: 
+            url="{{ ORQUESTRADOR_DEB_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb"
+
+      # Instalação Orquestrador
+        - name: Instalação Orquestrador
+          apt: deb="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb"
+          sudo: true
+
       # Download NetManager
         - name: Download NetManger
           get_url: 
             url="{{ NET_MANAGER_DEB_URL }}"
-            dest="/etc/{{ DIR_INSTALL_SOFTWAY }}/downloads/netmanager.deb"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb"
 
       # Instalação NetManager
         - name: Instalação NetManger
-          apt: deb="/etc/{{ DIR_INSTALL_SOFTWAY }}/downloads/netmanager.deb"
+          apt: deb="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb"
           sudo: true
 
       # Atribuição de permissões NetManager
@@ -681,6 +682,11 @@
         - name: Inicializa NetManager
           shell: |
               sudo /etc/init.d/net-manager start
+
+      # Inicializa Orquestrador
+        - name: Inicializa Orquestrador
+          shell: |
+              sudo /etc/init.d/orch start
 
       
         
