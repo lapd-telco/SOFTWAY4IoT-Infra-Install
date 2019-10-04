@@ -1,8 +1,0 @@
-{
-    "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"],
-    "tls": true,
-    "tlscacert": "/home/labora/ca.pem",
-    "tlscert": "/home/labora/server-cert.pem",
-    "tlskey": "/home/labora/server-key.pem",
-    "tlsverify": true
-}

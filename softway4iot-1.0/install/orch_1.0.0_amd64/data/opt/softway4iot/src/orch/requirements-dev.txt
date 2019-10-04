@@ -1,1 +1,0 @@
--e git+file:/home/gmfaria6/SOFTWAY4IoT-Orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
