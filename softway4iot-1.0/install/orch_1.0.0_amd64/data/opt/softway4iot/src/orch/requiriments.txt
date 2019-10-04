@@ -1,0 +1,8 @@
+docker>=4.0.2
+pyyaml>=5.1.2
+etcd3>=0.10.0
+jsonlib-python3>=1.6.1
+apscheduler>=3.5.3
+marshmallow==3.0.0rc3
+
+

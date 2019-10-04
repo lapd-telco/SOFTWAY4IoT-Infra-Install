@@ -1,0 +1,12 @@
+version: "3.5"
+services:
+  create-ap:
+    image: yangxuan8282/create_ap:amd64
+    container_name: ap
+    privileged: True
+    environment:
+      - AP_SSID=pi
+      - AP_WIFI_IFACE=wlx001e58b10d67
+      - AP_INTERNET_IFACE=enp0s25
+      - AP_PASSPHRASE=RaspberryPi
+    network_mode: host

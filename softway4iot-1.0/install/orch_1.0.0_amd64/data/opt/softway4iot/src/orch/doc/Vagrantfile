@@ -1,0 +1,48 @@
+$docker_install = <<-SCRIPT
+    sudo apt-get update
+    sudo apt-get install -y systemd
+    sudo apt-get install -y git
+    sudo apt-get install pigz
+    sudo apt-get install -y libseccomp2
+    sudo apt-get install -y cgroup-lite
+    sudo apt-get install aufs-tools
+    sudo apt-get install -y \
+            apt-transport-https \
+            ca-certificates \
+            curl \
+            gnupg-agent \
+            software-properties-common
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
+    sudo apt-get update
+    apt-cache search docker-ce
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+    sudo groupadd docker
+    sudo gpasswd -a $USER docker
+
+    # Steps to enable external connections in Docker
+    # Create the directory to store the configuration file.
+    sudo mkdir -p /etc/systemd/system/docker.service.d
+    sudo echo "[Service]" > /etc/systemd/system/docker.service.d/options.conf
+    sudo echo "ExecStart=" >> /etc/systemd/system/docker.service.d/options.conf
+    sudo echo "ExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:2375" >> /etc/systemd/system/docker.service.d/options.conf
+    sudo systemctl daemon-reload
+    sudo systemctl restart docker
+SCRIPT
+
+Vagrant.configure("2") do |config_gw|
+
+    #configuração de gateway 1
+    config_gw.vm.define "gt_1" do |doker_config|
+       doker_config.vm.box = "ubuntu/xenial64"
+       doker_config.vm.network "private_network", ip:  "192.168.50.11"
+       doker_config.vm.provision "shell", inline: $docker_install
+    end
+
+    #configuração de gateway 2
+    config_gw.vm.define "gt_2" do |doker_config|
+       doker_config.vm.box = "ubuntu/xenial64"
+       doker_config.vm.network "private_network", ip:  "192.168.50.10"
+       doker_config.vm.provision "shell", inline: $docker_install
+    end
+end
