@@ -1,8 +1,8 @@
 [manager]
-10.16.0.243 ansible_user=root
+10.16.0.188 ansible_user=root
 
 [gateway]
-10.16.0.141 ansible_user=root
+10.16.0.189 ansible_user=root
 
 
 

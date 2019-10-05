@@ -7,12 +7,14 @@
         GATEWAY_URL_REGISTER: '/v1/'
         FLESK_PORT_MANAGER: 5000
         IP_ETCD_CONTAINER: '10.250.1.4'
-        
+
+        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
+        INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
+
         physical_network_interface: ''
         ip_gateway_manager: '' 
         gateway_manager_token_acess: '' 
         number_gateway_controll: ''
-        fiware_deploy: 'false'
         fiware_deploy: 'false'
 
         # variável utilizada na construção da chave de conexão entre gt_manager e gateways
@@ -79,7 +81,6 @@
               sudo apt install python-setuptools -y
               sudo apt install python-pip -y
 
-
       # Atualização de pacotes do SO via APT
         - name: Atualiza pacotes via APT
           become: true
@@ -117,13 +118,14 @@
               sudo rm -r /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
      
-     # Construção do arquivo de configuração
+      # Construção do arquivo de configuração
         - name: Constroi o arquivo de configuração softway gateway
           copy:
             dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
@@ -131,7 +133,7 @@
                 NUMBER_GATEWAY_CONTROLL={{ number_gateway_controll }}
                 PHYSICAL_NETWORK_INTERFACE={{ physical_network_interface }}
 
-      #Adiciona chaves + repositório Docker
+      # Adiciona chaves + repositório Docker
         - name: Adiciona Docker GPG key
           apt_key: url=https://download.docker.com/linux/ubuntu/gpg
 
@@ -220,17 +222,31 @@
         - name: Transfere código do Orquestrador GW
           copy: src=SOFTWAY4IoT-Orch-gw/ dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
 
-        - debug:
-            msg: python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
-
       # Transfere código do orquestrador
         - name: Transfere código commom p/ o orquestrador
           copy: src=SOFTWAY4IoT-F3-Common dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
 
-      # Lib DataBase
-        - name: Gera LIB DataBase
+       # Download do Commons
+        - name: Softway Commons download
+          get_url: 
+            url="{{ SOFTWAY_COMMONS_DEB_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb"
+
+      # Instalação Commons
+        - name: Softway Commons install
           shell: |
-              pip3 install -e git+file:/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/SOFTWAY4IoT-F3-Common#egg=sw4iotdatabase
+              sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
+
+      # Download Interface Monitor
+        - name: Softway Interface Monitor download
+          get_url: 
+            url="{{ INTERFACE_MONITOR_DEB_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-interface-monitor.deb"
+
+      # Instalação Interface Monitor
+        - name: Softway Interface Monitor install
+          shell: |
+              sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-interface-monitor.deb
 
       # Executa o orquestrador do Gateway
         - name: Roda o Orquestrador
