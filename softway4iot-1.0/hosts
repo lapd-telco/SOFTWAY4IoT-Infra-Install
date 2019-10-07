@@ -1,12 +1,14 @@
 [manager]
-10.16.0.137 ansible_user=root
+10.16.0.136 ansible_user=root
 [manager:vars]
-physical_network_interface=enp2s0
+physical_network_interface=eth0
 user_name=labora
+
 
 [gateway]
 10.16.0.141 ansible_user=root
 [gateway:vars]
-ip_gateway_manager=10.16.0.137
-gateway_manager_token_acess=186144b2-e91f-11e9-b1fa-a4badb08094f
+physical_network_interface=enp0s25
+ip_gateway_manager=10.16.0.136
+gateway_manager_token_acess=d3b18f8c-e939-11e9-aa15-00163e3a653a
 

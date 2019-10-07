@@ -11,9 +11,7 @@
         SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
 
-        physical_network_interface: ''
         number_gateway_controll: ''
-        fiware_deploy: 'false'
 
         # variável utilizada na construção da chave de conexão entre gt_manager e gateways
         password_gateways_connection : 'softw4y'
@@ -280,9 +278,18 @@
           shell: |
               sudo /etc/init.d/interface-monitor start
 
+#        - debug:
+#            msg: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
+
       # Executa o orquestrador do Gateway
         - name: Roda o Orquestrador
           shell: |
               python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
           args:
             chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+
+      # Informa o TimeZone p/ melhorar o registro de log
+        - name: Set TimeZone
+          ignore_errors: yes
+          shell: |
+              sudo cp /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime

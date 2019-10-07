@@ -72,8 +72,8 @@
             msg: "'user_name' not found, this parameter is required!"
           when: user_name == ''
 
-        - debug:
-            msg: physical_network_interface {{ physical_network_interface }} user_name  {{ user_name }}
+ #       - debug:
+ #           msg: physical_network_interface {{ physical_network_interface }} user_name  {{ user_name }}
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 1/2
@@ -443,7 +443,7 @@
 
                 echo "1" > /proc/sys/net/ipv4/ip_forward
 
-                ovs-ofctl add-flow br-data ip,priority=2,actions=DROP
+                ovs-ofctl add-flow br-data ip,priority=2,cookie=2,actions=DROP
                 ovs-ofctl add-flow br-data ip,nw_src=$network_lan_data,nw_dst=$network_lan_data,priority=8,actions=NORMAL
 
                 # Configure BR_CONTROL:
@@ -456,7 +456,7 @@
 
                 echo "1" > /proc/sys/net/ipv4/ip_forward
 
-                ovs-ofctl add-flow br-control ip,priority=2,actions=DROP
+                ovs-ofctl add-flow br-control ip,priority=2,cookie=2,actions=DROP
                 ovs-ofctl add-flow br-control ip,nw_src=$network_lan_control,nw_dst=$network_lan_control,priority=8,actions=NORMAL
 
       # Construção do arquivo IPTables
@@ -761,6 +761,13 @@
         - name: Orchestrator initialize
           shell: |
               sudo /etc/init.d/orch start
+
+
+    # Informa o TimeZone p/ melhorar o registro de log
+        - name: Set TimeZone
+          ignore_errors: yes
+          shell: |
+              sudo cp /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
 
       
         
