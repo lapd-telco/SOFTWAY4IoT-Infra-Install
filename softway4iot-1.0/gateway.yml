@@ -205,6 +205,23 @@
 
                 ovs-ofctl add-flow br-control ip,priority=2,actions=DROP
                 ovs-ofctl add-flow br-control ip,nw_src=$network_lan_control,nw_dst=$network_lan_control,priority=8,actions=NORMAL
+
+      # Construção do arquivo de configuração DOCKER
+        - name: Build Docker configuration file
+          copy:
+            dest: "/etc/docker/daemon.json"
+            content: |
+                {
+                  "hosts": [
+                    "unix:///var/run/docker.sock",
+                    "tcp://0.0.0.0:2375"
+                  ],
+                  "tls": true,
+                  "tlscacert": "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem",
+                  "tlscert": "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem",
+                  "tlskey": "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem",
+                  "tlsverify": true
+                }
       
       # Executa script que realiza o Setup inicial da rede
         - name: Setup inicial da Rede
@@ -247,6 +264,11 @@
         - name: Softway Interface Monitor install
           shell: |
               sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-interface-monitor.deb
+
+      # Inicializa Interface Monitor
+        - name: Interface Monitor init
+          shell: |
+              sudo /etc/init.d/interface-monitor start
 
       # Executa o orquestrador do Gateway
         - name: Roda o Orquestrador
