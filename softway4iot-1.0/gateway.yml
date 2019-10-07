@@ -12,8 +12,6 @@
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
 
         physical_network_interface: ''
-        ip_gateway_manager: '' 
-        gateway_manager_token_acess: '' 
         number_gateway_controll: ''
         fiware_deploy: 'false'
 
@@ -46,29 +44,45 @@
             msg: "Número de controle para o Gateway deve ser maior que 1"
           when: number_gateway_controll == '1'
 
-      # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove todos as possíveis referências de uma instalação anterior Softway4IoT
+       # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 1/2
           become: yes
           ignore_errors: yes
           shell:  |
               sudo ovs-vsctl del-br br-data
               sudo ovs-vsctl del-br br-control
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 2/2
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo apt-get purge -y strongswan
               sudo apt-get auto-remove -y --purge strongswan
               sudo apt-get purge -y openvswitch-switch
               sudo apt-get auto-remove -y --purge openvswitch-switch
+              sudo rm -r /usr/bin/ovs-docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove docker
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo  apt-get purge -y docker-engine docker docker.io docker-ce  
               sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce 
               sudo rm -rf /var/lib/docker /etc/docker
               sudo rm /etc/apparmor.d/docker
-              groupdel docker
-              sudo rm -rf /var/run/docker.sock
-              sudo rm -rf /etc/softway4iot
-              sudo rm -r /usr/bin/ovs-docker
+              sudo rm -rf /var/run/docker.sock       
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove IPTables
+          become: yes
+          ignore_errors: yes
+          shell:  |
               iptables --flush
               iptables --table nat --flush
               iptables --delete-chain
-              iptables --table nat --delete-chain
+              iptables --table nat --delete-chain       
 
       # Instala os requisitos mínimos de python para o correto funcionamento do Ansible
         - name : Instala os requisitos mínimos de python para o correto funcionamento do Ansible
@@ -238,10 +252,6 @@
       # Transfere código do orquestrador GW
         - name: Transfere código do Orquestrador GW
           copy: src=SOFTWAY4IoT-Orch-gw/ dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
-
-      # Transfere código do orquestrador
-        - name: Transfere código commom p/ o orquestrador
-          copy: src=SOFTWAY4IoT-F3-Common dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/
 
        # Download do Commons
         - name: Softway Commons download
