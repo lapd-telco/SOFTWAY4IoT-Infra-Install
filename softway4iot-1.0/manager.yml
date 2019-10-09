@@ -667,7 +667,7 @@
                         port: {{ FIWARE_MANAGER_CONTAINER_PORT }}
                     },
                     iotagent: {
-                        host : ' {{ ansible_default_ipv4.address }}',
+                        host : '{{ IP_IOTAGENT_CONTAINER }}',
                         northport: {{ IOT_AGENT_NORTH_PORT }}
                     },
 

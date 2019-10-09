@@ -293,3 +293,9 @@
           ignore_errors: yes
           shell: |
               sudo cp /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+
+      # Start docker deamon
+        - name: Start Docker deamon
+          shell: |
+              sudo systemctl restart docker
+              sudo dockerd &
