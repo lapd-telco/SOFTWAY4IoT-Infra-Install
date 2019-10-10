@@ -1,6 +1,7 @@
 ---
 -   hosts: gateway
     become: yes
+    remote_user: root
     vars:
         BASE_DIR_INSTALL: 'opt'
         DIR_INSTALL_SOFTWAY: 'softway4iot'
@@ -10,8 +11,6 @@
 
         SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
-
-        number_gateway_controll: ''
 
         # variável utilizada na construção da chave de conexão entre gt_manager e gateways
         password_gateways_connection : 'softw4y'

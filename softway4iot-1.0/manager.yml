@@ -1,6 +1,7 @@
 ---
--   hosts: manager
+-   hosts: sw4iot-manager
     become: yes
+    remote_user: root
     vars:
         
         API_SERVE_PORT: '5000'
@@ -29,9 +30,8 @@
         ETCD_PORT_NODES_CONNECT: '2380'
         ETCD_PORT_CLIENTS_CONNECT: '2379'
 
-
-        IP_IOTAGENT_CONTAINER: '10.249.1.2'
-        IP_FIWARE_MANAGER_CONTAINER: '10.249.1.3'
+        IP_IOTAGENT_CONTAINER: '10.250.1.6'
+        IP_FIWARE_MANAGER_CONTAINER: '10.250.1.5'
         FIWARE_MANAGER_CONTAINER_PORT : '4000'
 
         #mascara de rede da rede que controla os containers
@@ -40,7 +40,7 @@
         WEBSM_CONTAINER_HTTPS_PORT : '443'
         
         #porta que será exposta e redirecionada para a porta em que o container WEBsm está respondendo, geralmente 443
-        WEBSM_EXTERNAL_ACESS_PORT : '8080'
+        websm_external_acess_port : '8080'
         
         NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager_1.0.0_amd64.deb'
         ORQUESTRADOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_1.0.0_amd64.deb'
@@ -50,10 +50,10 @@
         #INTEGRAÇÃO FIWARE
         IOT_AGENT_SOUTH_PORT : '7896'
         IOT_AGENT_NORTH_PORT : '4041'
-        HOST_ORION: '10.16.0.152' 
-        PORT_ORION: '1026'
-        HOST_MONGODB: '10.16.0.152' 
-        PORT_MONGODB: '27017'
+        HOST_ORION: '200.143.200.6' 
+        PORT_ORION: '8006'
+        HOST_MONGODB: '200.143.200.6' 
+        PORT_MONGODB: '8005'
         DEFAULT_API_KEY_IOT_AGENT : '123'
 
 
@@ -473,7 +473,7 @@
                 :DOCKER - [0:0]
                 -A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
                 -A PREROUTING -p tcp -m tcp --dport {{ API_SERVE_PORT }} -j DNAT --to-destination {{ IP_APISERVER_CONTAINER }}:{{ API_SERVE_PORT }}
-                -A PREROUTING -p tcp -m tcp --dport {{ WEBSM_EXTERNAL_ACESS_PORT }} -j DNAT --to-destination {{ IP_WEBSM_CONTAINER }}:{{ WEBSM_CONTAINER_HTTPS_PORT }}
+                -A PREROUTING -p tcp -m tcp --dport {{ websm_external_acess_port }} -j DNAT --to-destination {{ IP_WEBSM_CONTAINER }}:{{ WEBSM_CONTAINER_HTTPS_PORT }}
                 -A PREROUTING -p tcp -m tcp --dport {{ IOT_AGENT_SOUTH_PORT }} -j DNAT --to-destination {{ IP_IOTAGENT_CONTAINER }}:{{ IOT_AGENT_SOUTH_PORT }}
                 -A PREROUTING -p tcp -m tcp --dport {{ IOT_AGENT_NORTH_PORT }} -j DNAT --to-destination {{ IP_IOTAGENT_CONTAINER }}:{{ IOT_AGENT_NORTH_PORT }}
                 -A PREROUTING -p tcp -m tcp --dport {{ FIWARE_MANAGER_CONTAINER_PORT }} -j DNAT --to-destination {{ IP_FIWARE_MANAGER_CONTAINER }}:{{ FIWARE_MANAGER_CONTAINER_PORT }}
@@ -645,14 +645,14 @@
         - name: Set up OVS IOTAgent container connection
           when: fiware_deploy == 'true'
           shell:  |
-              sudo ovs-docker add-port br-data eth02 {{ IO_AGENT_CONTAINER_NAME }} --ipaddress={{ IP_IOTAGENT_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_DATA }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+              sudo ovs-docker add-port br-control eth02 {{ IO_AGENT_CONTAINER_NAME }} --ipaddress={{ IP_IOTAGENT_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
         
       # Construção das regras de Entrada e saída para o container IOTAgent
         - name: Build OVS inbound and outbound rules for IOTAgent container
           when: fiware_deploy == 'true'
           shell:  |
-              ovs-ofctl add-flow br-data ip,nw_dst={{ IP_IOTAGENT_CONTAINER }},priority=8,actions=NORMAL
-              ovs-ofctl add-flow br-data ip,nw_src={{ IP_IOTAGENT_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_IOTAGENT_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_IOTAGENT_CONTAINER }},priority=8,actions=NORMAL
               
       # Arquivo de configuração FIWARE-Manager
         - name: Build Fiware-Manger configuration file
@@ -663,7 +663,7 @@
               
                 managerConfig = {
                     server: {
-                        host: '{{ IP_FIWARE_MANAGER_CONTAINER }}',
+                        host: '0.0.0.0',
                         port: {{ FIWARE_MANAGER_CONTAINER_PORT }}
                     },
                     iotagent: {
@@ -690,18 +690,18 @@
         - name : Fiware-Manager deployment with Docker Hub
           when: fiware_deploy == 'true'
           shell:  |
-              docker run --net=none --init -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js:/SOFTWAY4IoT-F3-FiwareManager/config.js  --name={{ FIWARE_MANAGER_CONTAINER_NAME }} -d sw4iot/softway4iot-f3-fiwaremanager:1.0
+              docker run --net=none --init -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js:/SOFTWAY4IOT-F3-FiwareManager/config.js  --name={{ FIWARE_MANAGER_CONTAINER_NAME }} -d sw4iot/softway4iot-f3-fiwaremanager:1.0
        
       # Configura conexão do Container IOTAgent via ovs-docker
         - name: Setup OVS Fiware-Manager container connection
           shell:  |
-              sudo ovs-docker add-port br-data eth02 {{ FIWARE_MANAGER_CONTAINER_NAME }} --ipaddress={{ IP_FIWARE_MANAGER_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_DATA }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+              sudo ovs-docker add-port br-control eth02 {{ FIWARE_MANAGER_CONTAINER_NAME }} --ipaddress={{ IP_FIWARE_MANAGER_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
         
       # Construção das regras de Entrada e saída para o container Fiware-Manager
         - name: Build OVS inbound and outbound rules for Fiware-Manager container
           shell:  |
-              ovs-ofctl add-flow br-data ip,nw_dst={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
-              ovs-ofctl add-flow br-data ip,nw_src={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
     
       ####################################################################
       ####################################################################
@@ -750,7 +750,6 @@
               {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables-restore
               {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables-save
               {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables' | sudo EDITOR='tee -a' visudo
-              
 
       # Inicializa NetManager
         - name: NetManager initialize
@@ -761,7 +760,6 @@
         - name: Orchestrator initialize
           shell: |
               sudo /etc/init.d/orch start
-
 
     # Informa o TimeZone p/ melhorar o registro de log
         - name: Set TimeZone
