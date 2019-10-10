@@ -49,40 +49,99 @@
               sudo ovs-vsctl del-br br-data
               sudo ovs-vsctl del-br br-control
 
+       # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 1/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo ovs-vsctl del-br br-data
+ 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove ovs-docker and openvswitch 2/2
+        - name : Remove ovs-docker and openvswitch 2/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo ovs-vsctl del-br br-control
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 3/9
           become: yes
           ignore_errors: yes
           shell:  |
               sudo apt-get purge -y strongswan
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 4/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo apt-get auto-remove -y --purge strongswan
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 5/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo apt-get purge -y openvswitch-switch
               sudo apt-get auto-remove -y --purge openvswitch-switch
               sudo rm -r /usr/bin/ovs-docker
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove docker
+        - name : Remove ovs-docker and openvswitch 6/9
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo  apt-get purge -y docker-engine docker docker.io docker-ce  
-              sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce 
-              sudo rm -rf /var/lib/docker /etc/docker
-              sudo rm /etc/apparmor.d/docker
-              sudo rm -rf /var/run/docker.sock       
+              sudo  kill -9 $ (pidof sudo dockerd)
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove IPTables
+        - name : Remove ovs-docker and openvswitch 7/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo apt-get purge -y docker-engine docker docker.io docker-ce  
+              sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce 
+              sudo rm -rf /var/lib/docker /etc/docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 8/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo rm /etc/apparmor.d/docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 9/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo rm -rf /var/run/docker.sock    
+
+      # Instala os pré-requisitos para os demais pacotes de software (vpn, openswitch, etc)
+        - name: Install VPN and OPENVSWITCH requirements
+          apt:
+              name: ['iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
+              update_cache: yes
+
+      # Remove todos as possíveis referências existentes em IPTables
+        - name : Clear IPTables
           become: yes
           ignore_errors: yes
           shell:  |
               iptables --flush
               iptables --table nat --flush
               iptables --delete-chain
-              iptables --table nat --delete-chain       
+              iptables --table nat --delete-chain  
+
+      # Atualização de pacotes do SO via APT
+        - name: APT Update
+          become: true
+          apt:
+            upgrade: yes
+            update_cache: yes
+            cache_valid_time: 86400 #One day
 
       # Instala os requisitos mínimos de python para o correto funcionamento do Ansible
-        - name : Instala os requisitos mínimos de python para o correto funcionamento do Ansible
+        - name : Install python minimun requirements
           become: yes
           shell:  |
               sudo apt update
@@ -92,28 +151,14 @@
               sudo apt install python-setuptools -y
               sudo apt install python-pip -y
 
-      # Atualização de pacotes do SO via APT
-        - name: Atualiza pacotes via APT
-          become: true
-          apt:
-            upgrade: yes
-            update_cache: yes
-            cache_valid_time: 86400 #One day
-      
-      # Instala os pré-requisitos para os demais pacotes de software (vpn, openswitch, etc)
-        - name: Instala os pré-requisitos para os demais pacotes de software (vpn, openswitch, etc)
-          apt:
-              name: ['wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
-              update_cache: yes
-
       # Install Pytohn2 apis
-        - name: Instala dependências python2 via PIP
+        - name: Install Python2 requirements with PIP (setuptools)
           pip:
               name: 
                 - setuptools
 
       # Install Pytohn3 apis
-        - name: Instala dependências python3 via PIP
+        - name: Install Python3 requirements with PIP (docker, PyYAML, etc)
           pip:
               name: 
                 - docker
@@ -123,7 +168,7 @@
               executable: pip3
 
       # Diretório de configuração Softway
-        - name : Construção dos diretórios do Softway
+        - name : Build softway4iot infrastructure directories
           become: yes
           shell:  |
               sudo rm -r /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
@@ -137,7 +182,7 @@
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
      
       # Construção do arquivo de configuração
-        - name: Constroi o arquivo de configuração softway gateway
+        - name: Build softway4iot config file
           copy:
             dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
             content: |
@@ -145,28 +190,28 @@
                 PHYSICAL_NETWORK_INTERFACE={{ physical_network_interface }}
 
       # Adiciona chaves + repositório Docker
-        - name: Adiciona Docker GPG key
+        - name: Add Docker GPG key into apt
           apt_key: url=https://download.docker.com/linux/ubuntu/gpg
 
-        - name: Adiciona Docker APT repository
+        - name: Add Docker APT repository
           apt_repository:
             repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
 
       # Instala Docker
-        - name: Instala Docker
+        - name: Install Docker
           apt:
             name: docker-ce
             update_cache: yes
       
       # Download e instalação OVS-DOCKER
-        - name : Download e instalação OVS-Docker
+        - name : Download and instalation OVS-Docker
           shell:  |
               wget https://raw.githubusercontent.com/openvswitch/ovs/master/utilities/ovs-docker
               sudo mv ovs-docker /usr/bin
               chmod a+rwx /usr/bin/ovs-docker
 
       # Construção do arquivo para Setup da Rede
-        - name: Constroi o arquivo para Setup da Rede
+        - name: Build Network configuration file
           copy:
             dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh"
             content: |
@@ -241,13 +286,13 @@
               sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
 
       # Construção de tunel de comunicação entre Gateway e GatewayManager
-        - name: Construção de tunel de comunicação entre Gateway e GatewayManager
+        - name: Build communication bridge Gateway / Manager
           shell:  |
               ovs-vsctl add-port br-data vxlan_data -- set Interface vxlan_data type=gre options:remote_ip={{ ip_gateway_manager }}
               ovs-vsctl add-port br-control vxlan_control -- set Interface vxlan_control type=vxlan options:remote_ip={{ ip_gateway_manager }}
 
       # Transfere código do orquestrador GW
-        - name: Transfere código do Orquestrador GW
+        - name: Install Orch-GW
           copy: src=SOFTWAY4IoT-Orch-gw/ dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
 
        # Download do Commons
@@ -260,6 +305,7 @@
         - name: Softway Commons install
           shell: |
               sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
+              sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
 
       # Download Interface Monitor
         - name: Softway Interface Monitor download
@@ -271,17 +317,15 @@
         - name: Softway Interface Monitor install
           shell: |
               sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-interface-monitor.deb
+              sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-interface-monitor.deb
 
       # Inicializa Interface Monitor
         - name: Interface Monitor init
           shell: |
               sudo /etc/init.d/interface-monitor start
 
-#        - debug:
-#            msg: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch/python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
-
       # Executa o orquestrador do Gateway
-        - name: Roda o Orquestrador
+        - name: Softway Orch Init
           shell: |
               python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
           args:

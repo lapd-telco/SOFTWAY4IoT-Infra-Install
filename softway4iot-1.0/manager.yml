@@ -76,33 +76,70 @@
  #           msg: physical_network_interface {{ physical_network_interface }} user_name  {{ user_name }}
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove ovs-docker and openvswitch 1/2
+        - name : Remove ovs-docker and openvswitch 1/9
           become: yes
           ignore_errors: yes
           shell:  |
               sudo ovs-vsctl del-br br-data
+ 
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 2/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo ovs-vsctl del-br br-control
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove ovs-docker and openvswitch 2/2
+        - name : Remove ovs-docker and openvswitch 3/9
           become: yes
           ignore_errors: yes
           shell:  |
               sudo apt-get purge -y strongswan
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 4/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo apt-get auto-remove -y --purge strongswan
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 5/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo apt-get purge -y openvswitch-switch
               sudo apt-get auto-remove -y --purge openvswitch-switch
               sudo rm -r /usr/bin/ovs-docker
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove docker
+        - name : Remove ovs-docker and openvswitch 6/9
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo  apt-get purge -y docker-engine docker docker.io docker-ce  
+              sudo  kill -9 $ (pidof sudo dockerd)
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 7/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo apt-get purge -y docker-engine docker docker.io docker-ce  
               sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce 
               sudo rm -rf /var/lib/docker /etc/docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 8/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo rm /etc/apparmor.d/docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 9/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
               sudo rm -rf /var/run/docker.sock
 
       # Instala os pré-requisitos para os demais pacotes de software (vpn, openswitch, etc)
@@ -110,6 +147,17 @@
           apt:
               name: ['iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
               update_cache: yes
+
+
+      # Remove todos as possíveis referências existentes em IPTables
+        - name : Clear IPTables
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              iptables --flush
+              iptables --table nat --flush
+              iptables --delete-chain
+              iptables --table nat --delete-chain     
 
       # Remove executável NetManager
         - name : Remove softway4iot net-manger old version instalation (if exists)
@@ -214,7 +262,7 @@
 
         - name: Add Docker APT repository
           apt_repository:
-            repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
+           repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
 
       # Instala Docker
         - name: Install Docker
@@ -719,6 +767,7 @@
         - name: Softway Commons install
           shell: |
               sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
+              sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
 
       # Download do Orquestrador
         - name: Orchestrator download
@@ -730,6 +779,7 @@
         - name: Orchestrator install
           shell: |
                 sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb
+                sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb
 
       # Download NetManager
         - name: NetManger download
@@ -741,6 +791,7 @@
         - name: NetManger install
           shell: |
                   sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb
+                  sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb
 
       # Atribuição de permissões NetManager
         - name: Add NetManager permissions
