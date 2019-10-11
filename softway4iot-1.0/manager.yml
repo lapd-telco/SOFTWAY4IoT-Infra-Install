@@ -7,9 +7,9 @@
         API_SERVE_PORT: '5000'
         BASE_DIR_INSTALL : "opt"
         DIR_INSTALL_SOFTWAY: 'softway4iot'
-        NET_LAN_DATA: '10.249.1.1/16'
-        NET_LAN_CONTROL: '10.250.1.1/16'
-        DOCKER_LAN_DATA_CONTROL: '172.17.0.0/16'
+        NET_LAN_DATA: '10.249.1.1/24'
+        NET_LAN_CONTROL: '10.250.1.1/24'
+        DOCKER_LAN_DATA_CONTROL: '172.17.0.0/24'
         IP_GATEWAY_MANAGER_BRIDGE_CONTROL: '10.250.1.1'
         IP_GATEWAY_MANAGER_BRIDGE_DATA: '10.249.1.1'
         MAXIMUM_TRANSMISSION_UNIT: '1400'
@@ -35,7 +35,7 @@
         FIWARE_MANAGER_CONTAINER_PORT : '4000'
 
         #mascara de rede da rede que controla os containers
-        HOSTS_MASK: '16'
+        HOSTS_MASK: '24'
         #porta HTTPS na qual o container do WEBSm responde
         WEBSM_CONTAINER_HTTPS_PORT : '443'
         
@@ -147,7 +147,6 @@
           apt:
               name: ['iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
               update_cache: yes
-
 
       # Remove todos as possíveis referências existentes em IPTables
         - name : Clear IPTables
@@ -422,7 +421,7 @@
                 sysctl -p /etc/sysctl.conf
 
                 # Generate Preshared Key:
-                openssl rand -base64 64 > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/keys
+                openssl rand -base64 64 > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/key
 
                 cat >> ipsec.conf << EOF
                 # basic configuration
@@ -527,8 +526,8 @@
                 -A PREROUTING -p tcp -m tcp --dport {{ FIWARE_MANAGER_CONTAINER_PORT }} -j DNAT --to-destination {{ IP_FIWARE_MANAGER_CONTAINER }}:{{ FIWARE_MANAGER_CONTAINER_PORT }}
                 -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
                 -A POSTROUTING -s {{ DOCKER_LAN_DATA_CONTROL }} ! -o docker0 -j MASQUERADE
-                -A POSTROUTING -s {{ NET_LAN_DATA }} ! -d {{ NET_LAN_DATA }} -o eth0 -j MASQUERADE
-                -A POSTROUTING -s {{ NET_LAN_CONTROL }} ! -d {{ NET_LAN_CONTROL }} -o eth0 -j MASQUERADE
+                -A POSTROUTING -s {{ NET_LAN_DATA }} ! -d {{ NET_LAN_DATA }} -o {{ physical_network_interface }} -j MASQUERADE
+                -A POSTROUTING -s {{ NET_LAN_CONTROL }} ! -d {{ NET_LAN_CONTROL }} -o {{ physical_network_interface }} -j MASQUERADE
                 -A DOCKER -i docker0 -j RETURN
                 COMMIT
                
@@ -547,9 +546,9 @@
                 -A FORWARD -o docker0 -j DOCKER
                 -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
                 -A FORWARD -i docker0 -o docker0 -j ACCEPT
-                -A FORWARD -d {{ NET_LAN_DATA }} -i eth0 -o c-data -m state --state RELATED,ESTABLISHED -j ACCEPT
+                -A FORWARD -d {{ NET_LAN_DATA }} -i {{ physical_network_interface }} -o c-data -m state --state RELATED,ESTABLISHED -j ACCEPT
                 -A FORWARD -s {{ NET_LAN_DATA }} -i c-data -j ACCEPT
-                -A FORWARD -d {{ NET_LAN_CONTROL }} -i eth0 -o c-control -m state --state RELATED,ESTABLISHED -j ACCEPT
+                -A FORWARD -d {{ NET_LAN_CONTROL }} -i {{ physical_network_interface }} -o c-control -m state --state RELATED,ESTABLISHED -j ACCEPT
                 -A FORWARD -s {{ NET_LAN_CONTROL }} -i c-control -j ACCEPT
                 -A DOCKER-ISOLATION-STAGE-1 -i docker0 ! -o docker0 -j DOCKER-ISOLATION-STAGE-2
                 -A DOCKER-ISOLATION-STAGE-1 -j RETURN
@@ -668,7 +667,7 @@
                         db: 'iotagentjson'
                     },
                     types: {},
-                    service: 'howtoService',
+                    service: 'howtoservice',
                     subservice: '/howto',
                    
                     providerUrl: 'http://{{ ansible_default_ipv4.address }}:{{ IOT_AGENT_NORTH_PORT }}',

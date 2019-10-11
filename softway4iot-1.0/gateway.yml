@@ -91,7 +91,7 @@
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo  kill -9 $ (pidof sudo dockerd)
+              sudo  kill -9 $(pidof sudo dockerd)
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 7/9
@@ -224,10 +224,10 @@
                 iface_wan={{ physical_network_interface }}
 
                 # Params to configure NAT BR_DATA:
-                network_lan_data=10.249.{{ number_gateway_controll }}.1/16
+                network_lan_data=10.249.{{ number_gateway_controll }}.1/24
 
                 # Params to configure NAT BR_CONTROL:
-                network_lan_control=10.250.{{ number_gateway_controll }}.1/16
+                network_lan_control=10.250.{{ number_gateway_controll }}.1/24
                 
 
                 # Configure BR_DATA:

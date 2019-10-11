@@ -1,22 +1,31 @@
-[sw4iot-manager]
-10.16.0.243
-[sw4iot-manager:vars]
-physical_network_interface=ens160
-user_name=unbadm
-
-
-[gateway]
-10.16.0.141     physical_network_interface=enp0s25  number_gateway_controll=2
-10.16.0.189     physical_network_interface=enp0s25  number_gateway_controll=3
- 
-[gateway:vars]
-ip_gateway_manager=10.16.0.243
-gateway_manager_token_acess=67bff162-eac7-11e9-a430-00163e1a2393
-
-
-# Install UNB
+# --- unb
 #[sw4iot-manager]
 #200.129.207.168 ansible_user=root
 #[sw4iot-manager:vars]
 #physical_network_interface=ens160
 #user_name=unbadm
+
+# --- ufg
+#[sw4iot-manager]
+#10.16.0.243
+#[sw4iot-manager:vars]
+#physical_network_interface=eth0
+#user_name=labora
+
+
+[gateway]
+10.16.0.141  physical_network_interface=ens160  number_gateway_controll=10
+#10.16.0.189  physical_network_interface=ens160  number_gateway_controll=3
+
+ 
+[gateway:vars]
+ip_gateway_manager=200.129.207.168
+gateway_manager_token_acess=4d4ed304-eb92-11e9-b47c-005056b05ea4
+
+
+# Install UNB
+[sw4iot-manager]
+200.129.207.168 ansible_user=root
+[sw4iot-manager:vars]
+physical_network_interface=ens160
+user_name=unbadm
