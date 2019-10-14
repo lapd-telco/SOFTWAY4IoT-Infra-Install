@@ -1,31 +1,17 @@
-# --- unb
-#[sw4iot-manager]
-#200.129.207.168 ansible_user=root
-#[sw4iot-manager:vars]
-#physical_network_interface=ens160
-#user_name=unbadm
 
-# --- ufg
-#[sw4iot-manager]
-#10.16.0.243
-#[sw4iot-manager:vars]
-#physical_network_interface=eth0
-#user_name=labora
 
+[sw4iot-manager]
+<ip-of-the-machine-will-be-gateway-manager> physical_network_interface=<value-of-the-physical-network-interface-of-the-manager-machine> user_name=<username-of-the-manager-machine>
 
 [sw4iot-gateway]
-10.16.0.141  physical_network_interface=enp0s25  number_gateway_controll=11
-#10.16.0.189  physical_network_interface=ens160  number_gateway_controll=3
+<ip-of-the-machine-will-be-gateway-1>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-1>  number_gateway_controll=<unique-id-gateway-controll>
+<ip-of-the-machine-will-be-gateway-2>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-2>  number_gateway_controll=<unique-id-gateway-controll>
+.
+.
+.
+<ip-of-the-machine-will-be-gateway-N>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-N>  number_gateway_controll=<unique-id-gateway-controll>
 
- 
 [sw4iot-gateway:vars]
-ip_gateway_manager=200.129.207.168
-gateway_manager_token_acess=e8c52eb8-ec5b-11e9-b47c-005056b05ea4
+ip_gateway_manager=<ip-of-the-gateway-manager>
+gateway_manager_token_acess=<gateway-manager-token-acess>
 
-
-# Install UNB
-[sw4iot-manager]
-200.129.207.168 ansible_user=root
-[sw4iot-manager:vars]
-physical_network_interface=ens160
-user_name=unbadm
