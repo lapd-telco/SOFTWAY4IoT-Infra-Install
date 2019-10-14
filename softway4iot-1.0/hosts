@@ -13,14 +13,14 @@
 #user_name=labora
 
 
-[gateway]
-10.16.0.141  physical_network_interface=ens160  number_gateway_controll=10
+[sw4iot-gateway]
+10.16.0.141  physical_network_interface=enp0s25  number_gateway_controll=11
 #10.16.0.189  physical_network_interface=ens160  number_gateway_controll=3
 
  
-[gateway:vars]
+[sw4iot-gateway:vars]
 ip_gateway_manager=200.129.207.168
-gateway_manager_token_acess=4d4ed304-eb92-11e9-b47c-005056b05ea4
+gateway_manager_token_acess=e8c52eb8-ec5b-11e9-b47c-005056b05ea4
 
 
 # Install UNB
