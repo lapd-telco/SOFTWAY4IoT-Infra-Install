@@ -4,12 +4,12 @@
 <ip-of-the-machine-will-be-gateway-manager> physical_network_interface=<value-of-the-physical-network-interface-of-the-manager-machine> user_name=<username-of-the-manager-machine>
 
 [sw4iot-gateway]
-<ip-of-the-machine-will-be-gateway-1>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-1>  number_gateway_controll=<unique-id-gateway-controll>
-<ip-of-the-machine-will-be-gateway-2>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-2>  number_gateway_controll=<unique-id-gateway-controll>
+<ip-of-the-machine-will-be-gateway-1>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-1> network_address_translation_ip_gateway=<value-of-network_address_translation_ip_gateway-1> user_name=<user-gateway-1> number_gateway_controll=<unique-id-gateway-controll>
+<ip-of-the-machine-will-be-gateway-2>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-2> network_address_translation_ip_gateway=<value-of-network_address_translation_ip_gateway-1> user_name=<user-gateway-2>  number_gateway_controll=<unique-id-gateway-controll>
 ...
 ...
 ...
-<ip-of-the-machine-will-be-gateway-N>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-N>  number_gateway_controll=<unique-id-gateway-controll>
+<ip-of-the-machine-will-be-gateway-N>  physical_network_interface=<value-of-the-physical-network-interface-of-the-gateway-N> network_address_translation_ip_gateway=<value-of-network_address_translation_ip_gateway-N> user_name=<user-gateway-N> number_gateway_controll=<unique-id-gateway-controll>
 
 [sw4iot-gateway:vars]
 ip_gateway_manager=<ip-of-the-gateway-manager>
