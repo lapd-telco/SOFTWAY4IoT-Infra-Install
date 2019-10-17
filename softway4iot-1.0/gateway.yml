@@ -337,16 +337,16 @@
 
       # Executa o orquestrador do Gateway -
         - name: Softway Orch Init - With NAT
-          when: networK_address_translation_ip_gateway != ''
+          when: network_address_translation_ip_gateway != ''
           shell: |
               sudo chmod +x setup_vpn_gw.sh
-              sudo python3 install_gw.py {{ number_gateway_controll }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ networK_address_translation_ip_gateway }} {{ gateway_manager_token_access }}
+              sudo python3 install_gw.py {{ number_gateway_controll }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ network_address_translation_ip_gateway }} {{ gateway_manager_token_access }}
           args:
             chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
 
       # Executa o orquestrador do Gateway
         - name: Softway Orch Init - WithOut
-          when: networK_address_translation_ip_gateway == ''
+          when: network_address_translation_ip_gateway == ''
           shell: |
               sudo chmod +x setup_vpn_gw.sh
               sudo python3 install_gw.py {{ number_gateway_controll }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_access }}
