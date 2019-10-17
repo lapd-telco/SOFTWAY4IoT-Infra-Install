@@ -9,11 +9,10 @@
         FLESK_PORT_MANAGER: 5000
         IP_ETCD_CONTAINER: '10.250.1.4'
 
+        SOFTWAY_ORCH_GW_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_gw_1.0.0.tar.gz'
         SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
 
-        # variável utilizada na construção da chave de conexão entre gt_manager e gateways
-        password_gateways_connection : 'softw4y'
     tasks:
        
       # Validação de variáveis obrigatória
@@ -119,7 +118,7 @@
       # Instala os pré-requisitos para os demais pacotes de software (vpn, openswitch, etc)
         - name: Install VPN and OPENVSWITCH requirements
           apt:
-              name: ['iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
+              name: ['unzip', 'iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
               update_cache: yes
 
       # Remove todos as possíveis referências existentes em IPTables
@@ -239,7 +238,6 @@
                 ifconfig $IFACE_LAN_DATA $network_lan_data up
 
                 echo "1" > /proc/sys/net/ipv4/ip_forward
-                iptables -t nat -A POSTROUTING -o $iface_wan -s $network_lan_data ! -d $network_lan_data -j MASQUERADE
                 iptables -A FORWARD -d $network_lan_data -i $iface_wan -o $IFACE_LAN_DATA -m state --state RELATED,ESTABLISHED -j ACCEPT
                 iptables -A FORWARD -s $network_lan_data -i $IFACE_LAN_DATA -j ACCEPT
 
@@ -255,7 +253,6 @@
                 ifconfig $IFACE_LAN_CONTROL $network_lan_control up
 
                 echo "1" > /proc/sys/net/ipv4/ip_forward
-                iptables -t nat -A POSTROUTING -o $iface_wan -s $network_lan_control ! -d $network_lan_control -j MASQUERADE
                 iptables -A FORWARD -d $network_lan_control -i $iface_wan -o $IFACE_LAN_CONTROL -m state --state RELATED,ESTABLISHED -j ACCEPT
                 iptables -A FORWARD -s $network_lan_control -i $IFACE_LAN_CONTROL -j ACCEPT
 
@@ -292,8 +289,22 @@
               ovs-vsctl add-port br-control vxlan_control -- set Interface vxlan_control type=vxlan options:remote_ip={{ ip_gateway_manager }}
 
       # Transfere código do orquestrador GW
-        - name: Install Orch-GW
-          copy: src=SOFTWAY4IoT-Orch-gw/ dest=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+        - name: Softway Orch download
+          get_url: 
+            url="{{ SOFTWAY_ORCH_GW_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch/orch_gw.tar.gz"
+
+      # Descompacta código do orquestrador GW
+        - name: Orch Gw install
+          shell: sudo tar -xvf orch_gw.tar.gz --strip-components 1
+          args:
+            chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch/
+
+
+      # Atribuição de permissões NetManager
+        - name: Add NetManager permissions
+          shell: |
+              echo '{{ user_name }} ALL=(ALL:ALL) NOPASSWD:/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch/setup_vpn_gw.sh' | sudo EDITOR='tee -a' visudo
 
        # Download do Commons
         - name: Softway Commons download
@@ -324,12 +335,23 @@
           shell: |
               sudo /etc/init.d/interface-monitor start
 
-      # Executa o orquestrador do Gateway
-        - name: Softway Orch Init
+      # Executa o orquestrador do Gateway -
+        - name: Softway Orch Init - With NAT
+          when: networK_address_translation_ip_gateway != ''
           shell: |
-              python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_access }}
+              sudo chmod +x setup_vpn_gw.sh
+              sudo python3 install_gw.py {{ number_gateway_controll }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ networK_address_translation_ip_gateway }} {{ gateway_manager_token_access }}
           args:
-            chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+            chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
+
+      # Executa o orquestrador do Gateway
+        - name: Softway Orch Init - WithOut
+          when: networK_address_translation_ip_gateway == ''
+          shell: |
+              sudo chmod +x setup_vpn_gw.sh
+              sudo python3 install_gw.py {{ number_gateway_controll }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_access }}
+          args:
+            chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
 
       # Informa o TimeZone p/ melhorar o registro de log
         - name: Set TimeZone
