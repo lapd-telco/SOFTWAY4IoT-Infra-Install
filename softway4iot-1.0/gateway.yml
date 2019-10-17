@@ -23,8 +23,8 @@
 
       # Validação de variáveis obrigatória
         - fail: 
-            msg: "É obrigatório informar o token de acesso ao GatewayManager através da variável 'gateway_manager_token_acess'. Este parâmetro pode ser obtido no WebSM"
-          when: gateway_manager_token_acess == ''
+            msg: "É obrigatório informar o token de acesso ao GatewayManager através da variável 'gateway_manager_token_access'. Este parâmetro pode ser obtido no WebSM"
+          when: gateway_manager_token_access == ''
 
       # Validação de variáveis obrigatória  
         - fail: 
@@ -327,7 +327,7 @@
       # Executa o orquestrador do Gateway
         - name: Softway Orch Init
           shell: |
-              python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_acess }}
+              python3 install_gw.py {{ number_gateway_controll }}  {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_access }}
           args:
             chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
 
