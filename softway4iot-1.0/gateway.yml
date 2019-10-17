@@ -1,5 +1,5 @@
 ---
--   hosts: gateway
+-   hosts: sw4iot-gateway
     become: yes
     remote_user: root
     vars:
