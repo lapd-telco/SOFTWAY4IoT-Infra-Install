@@ -8,11 +8,9 @@
         GATEWAY_URL_REGISTER: '/v1/'
         FLESK_PORT_MANAGER: 5000
         IP_ETCD_CONTAINER: '10.250.1.4'
-
         SOFTWAY_ORCH_GW_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_gw_1.0.0.tar.gz'
         SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
-
     tasks:
        
       # Validação de variáveis obrigatória
@@ -337,7 +335,7 @@
 
       # Executa o orquestrador do Gateway -
         - name: Softway Orch Init - With NAT
-          when: network_address_translation_ip_gateway != ''
+          when: network_address_translation_ip_gateway is defined
           shell: |
               sudo chmod +x setup_vpn_gw.sh
               sudo python3 install_gw.py {{ number_gateway_control }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ network_address_translation_ip_gateway }} {{ gateway_manager_token_access }}
@@ -346,7 +344,7 @@
 
       # Executa o orquestrador do Gateway
         - name: Softway Orch Init - WithOut
-          when: network_address_translation_ip_gateway == ''
+          when: network_address_translation_ip_gateway is undefined
           shell: |
               sudo chmod +x setup_vpn_gw.sh
               sudo python3 install_gw.py {{ number_gateway_control }} {{ ip_gateway_manager }} {{ IP_ETCD_CONTAINER }} {{ ansible_default_ipv4.address }} {{ ansible_default_ipv4.address }} {{ gateway_manager_token_access }}
