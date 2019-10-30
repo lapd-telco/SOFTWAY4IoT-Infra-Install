@@ -16,3 +16,21 @@ In this context, the [SOFTware-defined gateWAY and fog computing for IoT](https:
 
 The whole installation process is based on using [Ansilble](https://www.ansible.com/). You must first deploy a gateway manager. 
 To deploy a gateway manager you must edit the `hosts` file adding:
+
+```
+    [sw4iot-manager]
+    <gateway-manager-IP-address> physical_network_interface=<manager-machine-interface-name> user_name=<username-of-the-manager-machine>
+```
+
+After entering the connection parameters, just run the deployment playbook using ansible:
+
+```
+    ansible-playbook -v  manager.yml -i hosts
+```
+
+
+
+```
+    ansible-playbook -v  manager.yml -i hosts -e "fiware_deploy=true  remove_etcd_data=true websm_external_acess_port=8080"
+```
+
