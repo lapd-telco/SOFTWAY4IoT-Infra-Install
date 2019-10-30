@@ -1,0 +1,816 @@
+---
+-   hosts: sw4iot-manager
+    become: yes
+    remote_user: root
+    vars:
+        
+        API_SERVE_PORT: '5000'
+        BASE_DIR_INSTALL : "opt"
+        DIR_INSTALL_SOFTWAY: 'softway4iot'
+        NET_LAN_DATA: '10.249.1.1/24'
+        NET_LAN_CONTROL: '10.250.1.1/24'
+        DOCKER_LAN_DATA_CONTROL: '172.17.0.0/24'
+        IP_GATEWAY_MANAGER_BRIDGE_CONTROL: '10.250.1.1'
+        IP_GATEWAY_MANAGER_BRIDGE_DATA: '10.249.1.1'
+        MAXIMUM_TRANSMISSION_UNIT: '1400'
+
+        # NOME DOS CONTAINERS
+        WEBSM_CONTAINER_NAME: 'websm'
+        API_SERVER_CONTAINER_NAME: 'apiserver'
+        ETCD_CONTAINER_NAME: 'etcd'
+        IO_AGENT_CONTAINER_NAME: 'iotagent'
+        FIWARE_MANAGER_CONTAINER_NAME: 'fiwaremanager'
+        
+        # ATRIBUIÇÃO DE ENDEREÇOS IPS AOS CONTAINER A PARTIR DO OPEN-SWITCH
+        IP_APISERVER_CONTAINER: '10.250.1.2'
+        IP_WEBSM_CONTAINER: '10.250.1.3'
+        IP_ETCD_CONTAINER: '10.250.1.4'
+
+        ETCD_PORT_NODES_CONNECT: '2380'
+        ETCD_PORT_CLIENTS_CONNECT: '2379'
+
+        IP_IOTAGENT_CONTAINER: '10.250.1.6'
+        IP_FIWARE_MANAGER_CONTAINER: '10.250.1.5'
+        FIWARE_MANAGER_CONTAINER_PORT : '4000'
+
+        #mascara de rede da rede que controla os containers
+        HOSTS_MASK: '24'
+        #porta HTTPS na qual o container do WEBSm responde
+        WEBSM_CONTAINER_HTTPS_PORT : '443'
+        
+        #porta que será exposta e redirecionada para a porta em que o container WEBsm está respondendo, geralmente 443
+        websm_external_acess_port : '8080'
+        
+        NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager_1.0.0_amd64.deb'
+        ORQUESTRADOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_1.0.0_amd64.deb'
+        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
+        
+        #INTEGRAÇÃO FIWARE
+        IOT_AGENT_SOUTH_PORT : '7896'
+        IOT_AGENT_NORTH_PORT : '4041'
+        HOST_ORION: '200.143.200.6' 
+        PORT_ORION: '8006'
+        HOST_MONGODB: '200.143.200.6' 
+        PORT_MONGODB: '8005'
+        DEFAULT_API_KEY_IOT_AGENT : '123'
+
+        fiware_deploy: 'false'
+        remove_etcd_data: 'false'
+        # variável utilizada na construção da chave de conexão entre gt_manager e gateways
+        password_gateways_connection : 's0ftw@y4IoT'
+    tasks:
+
+      # Validação de variáveis obrigatória
+        - fail: 
+            msg: "'physical_network_interface' not found, this parameter is required!"
+          when: physical_network_interface == ''
+
+        - fail: 
+            msg: "'user_name' not found, this parameter is required!"
+          when: user_name == ''
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 1/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo ovs-vsctl del-br br-data
+ 
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 2/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo ovs-vsctl del-br br-control
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 3/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo apt-get purge -y strongswan
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 4/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo apt-get auto-remove -y --purge strongswan
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 5/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo apt-get purge -y openvswitch-switch
+              sudo apt-get auto-remove -y --purge openvswitch-switch
+              sudo rm -r /usr/bin/ovs-docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 6/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo  kill -9 $ (pidof sudo dockerd)
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 7/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo apt-get purge -y docker-engine docker docker.io docker-ce  
+              sudo apt-get autoremove -y --purge docker-engine docker docker.io docker-ce 
+              sudo rm -rf /var/lib/docker /etc/docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 8/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo rm /etc/apparmor.d/docker
+
+      # Remove todos as possíveis referências de uma instalação anterior Softway
+        - name : Remove ovs-docker and openvswitch 9/9
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo rm -rf /var/run/docker.sock
+
+      # Instala os pré-requisitos para os demais pacotes de software (vpn, openswitch, etc)
+        - name: Install VPN and OPENVSWITCH requirements
+          apt:
+              name: ['iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
+              update_cache: yes
+
+      # Remove todos as possíveis referências existentes em IPTables
+        - name : Clear IPTables
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              iptables --flush
+              iptables --table nat --flush
+              iptables --delete-chain
+              iptables --table nat --delete-chain     
+
+      # Remove executável NetManager
+        - name : Remove softway4iot net-manger old version instalation (if exists)
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo dpkg --remove net-manager
+
+      # Remove executável Orquestrador
+        - name : Remove softway4iot orch old version instalation (if exists)
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo dpkg --remove orch
+
+      # Remove diretórios Softway
+        - name : Remove softway4iot directories (if exists)
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/net-manager
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
+
+      # Remove diretório de dados ETCD
+        - name : Remove softway4iot ETCD data storage file (if variable remove_etcd_data is TRUE)
+          become: yes
+          ignore_errors: yes
+          when: remove_etcd_data == 'true'
+          shell:  |
+              rm -rf  /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
+
+      # Instala os requisitos mínimos de python para o correto funcionamento do Ansible
+        - name : Install python requirements
+          shell:  |
+              sudo apt-get update
+              sudo apt-get install python -y
+              sudo apt-get install python-minimal python-simplejson -y
+              sudo apt-get install python-setuptools -y
+              sudo apt-get install python-pip -y
+
+      # Atualização de pacotes do SO via APT
+        - name: Update cache apt
+          become: true
+          apt:
+            upgrade: yes
+            update_cache: yes
+            cache_valid_time: 86400 #One day
+
+      # Install Pytohn3 apis
+        - name: Install Python3 requirements with PIP (setuptools, docker, PyYAML, etc)
+          pip:
+              name: 
+                - setuptools
+                - docker==4.0.2
+                - PyYAML
+                - uuid
+                - etcd3==0.10.0
+                - jsonlib-python3==1.6.1
+                - marshmallow==3.0.0rc3
+              executable: pip3
+     
+      # Diretório de configuração Softway
+        - name : Build softway4iot infrastructure directories
+          become: yes
+          ignore_errors: yes
+          shell:  |
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/orch
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/src/net-manager
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
+              sudo chmod -R 777 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
+
+      # Cria arquivo de dados ETCD
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db
+          register: p
+
+        - name: Build softway4iot ETCD file data storage
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db 
+                owner=root
+                group=sys
+                mode=0555
+                state={{ "file" if  p.stat.exists else "touch"}}        
+     
+      # Adiciona chaves + repositório Docker
+        - name: Add Docker GPG key into apt
+          apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+
+        - name: Add Docker APT repository
+          apt_repository:
+           repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
+
+      # Instala Docker
+        - name: Install Docker
+          apt:
+            name: docker-ce
+            update_cache: yes
+
+      # Construção do arquivo responsável por construir as chaves de acesso DOCKER
+        - name: Build docker file to create certs
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh"
+            content: |
+                #!/bin/bash
+                #see https://docs.docker.com/engine/security/https/
+
+                EXPIRATIONDAYS=700
+                CASUBJSTRING="/C=GB/ST=London/L=London/O=ExampleCompany/OU=IT/CN=example.com/emailAddress=test@example.com"
+
+                while [[ $# -gt 1 ]]
+                do
+                key="$1"
+
+                case $key in
+                    -m|--mode)
+                    MODE="$2"
+                    shift 
+                    ;;
+                    -h|--hostname)
+                    NAME="$2"
+                    shift 
+                    ;;
+                    -hip|--hostip)
+                    SERVERIP="$2"
+                    shift 
+                    ;;    
+                    -pw|--password)
+                    PASSWORD="$2"
+                    shift 
+                    ;;
+                    -t|--targetdir)
+                    TARGETDIR="$2"
+                    shift 
+                    ;;    
+                    -e|--expirationdays)
+                    EXPIRATIONDAYS="$2"
+                    shift 
+                    ;;    
+                    --ca-subj)
+                    CASUBJSTRING="$2"
+                    shift 
+                    ;; 
+                    *)
+                            # unknown option
+                    ;;
+                esac
+                shift 
+                done
+
+                echo "Mode $MODE"
+                echo "Host/Clientname $NAME"
+                echo "Host IP $SERVERIP"
+                echo "Targetdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs"
+                echo "Expiration $EXPIRATIONDAYS"
+
+                programname=$0
+
+                function usage {
+                    echo "usage: $programname -m ca -h example.de [-hip 1.2.3.4] -pw my-secret -t /target/dir [-e 365]"
+                    echo "  -m|--mode                 'ca' to create CA, 'server' to create server cert, 'client' to create client cert"
+                    echo "  -h|--hostname|-n|--name   DNS hostname for the server or name of client"
+                    echo "  -hip|--hostip             host's IP - default: none"
+                    echo "  -pw|--password            Password for CA Key generation"
+                    echo "  -t|--targetdir            Targetdir for certfiles and keys"
+                    echo "  -e|--expirationdays       certificate expiration in day - default: 700 days"    
+                    echo "  --ca-subj                 subj string for ca cert - default: Example String..."
+                    exit 1
+                }
+
+                function createCA {
+                    openssl genrsa -aes256 -passout pass:$PASSWORD -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem 4096
+                    openssl req -passin pass:$PASSWORD -new -x509 -days $EXPIRATIONDAYS -key /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -sha256 -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -subj $CASUBJSTRING
+                    
+                    chmod 0400 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem
+                    chmod 0444 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem
+                }
+
+                function checkCAFilesExist {
+                    if [[ ! -f "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem" || ! -f "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem" ]]; then
+                        echo "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem or /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem not found. Create CA first with '-m ca'"
+                        exit 1
+                    fi
+                }
+
+                function createServerCert {
+                    checkCAFilesExist
+
+                    if [[ -z $SERVERIP ]]; then
+                        IPSTRING=""
+                    else
+                        IPSTRING=",IP:$SERVERIP"
+                    fi
+
+                    openssl genrsa -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem 4096
+                    openssl req -subj "/CN=$NAME" -new -key /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr
+                    echo "subjectAltName = DNS:$NAME$IPSTRING" > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+                    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr -CA /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -CAkey /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -CAcreateserial -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem -extfile /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+
+                    rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server.csr /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.srl
+                    chmod 0400 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-key.pem
+                    chmod 0444 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/server-cert.pem
+                }
+
+                function createClientCert {
+                    checkCAFilesExist
+
+                    openssl genrsa -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem 4096
+                    openssl req -subj "/CN=$NAME" -new -key /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr
+                    echo "extendedKeyUsage = clientAuth" > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+                    openssl x509 -passin pass:$PASSWORD -req -days $EXPIRATIONDAYS -in /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr -CA /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.pem -CAkey /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca-key.pem -CAcreateserial -out /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem -extfile /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf
+
+                    rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client.csr /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/extfile.cnf /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/ca.srl
+                    chmod 0400 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem
+                    chmod 0444 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem
+
+                    mv /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-key.pem /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-$NAME-key.pem
+                    mv /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-cert.pem /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/client-$NAME-cert.pem 
+                }
+
+
+                if [[ -z $MODE || ($MODE != "ca" && -z $NAME) || -z $PASSWORD || -z /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs ]]; then
+                    usage   
+                fi
+
+                mkdir -p /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
+
+                if [[ $MODE = "ca" ]]; then 
+                    createCA
+                elif [[ $MODE = "server" ]]; then
+                    createServerCert
+                elif [[ $MODE = "client" ]]; then
+                    createClientCert
+                else
+                    usage
+                fi
+      
+      # Construção do arquivo para gerar as chaves da VPN
+        - name: Build file to create  softway4iot VPN keys
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh"
+            content: |
+                cat >> /etc/sysctl.conf << EOF
+                  net.ipv4.ip_forward = 1
+                  net.ipv4.conf.all.accept_redirects = 0
+                  net.ipv4.conf.all.send_redirects = 0
+                EOF
+
+                sysctl -p /etc/sysctl.conf
+
+                # Generate Preshared Key:
+                openssl rand -base64 64 > /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/key
+
+                cat >> ipsec.conf << EOF
+                # basic configuration
+                config setup
+                        charondebug="all"
+                        uniqueids=yes
+                        strictcrlpolicy=no
+                EOF
+
+                cp ipsec.conf /etc/ipsec.conf
+                rm ipsec.conf
+
+                cat >> ipsec.secrets << EOF
+                # source      destination
+                EOF
+
+                cp ipsec.secrets /etc/ipsec.secrets
+                rm ipsec.secrets
+      
+      # Execução do script responsável por gerar as chaves da VPN
+        - name: Build VPN key's
+          shell:  |
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys/setup_vpn_gm.sh
+
+      # Download e instalação OVS-DOCKER
+        - name : Download and instalation OVS-Docker
+          shell:  |
+              wget https://raw.githubusercontent.com/openvswitch/ovs/master/utilities/ovs-docker
+              sudo mv ovs-docker /usr/bin
+              chmod a+rwx /usr/bin/ovs-docker
+
+      # Implantação do WEBSm e API-Server via DockerHub
+        - name: Install softway4iot ETCD + APIServer + WEBSM (Docker hub) - Wait a few minutes!
+          shell:  |
+              docker run --net=none --name={{ API_SERVER_CONTAINER_NAME }} -d sw4iot/apiserver:1.0
+              docker run --net=none --name={{ WEBSM_CONTAINER_NAME }} -d sw4iot/websm:1.0
+              docker run --net=none -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db:/sw4iot/member/snap/db --name={{ ETCD_CONTAINER_NAME }} -d sw4iot/etcd:1.0 
+
+      # Construção do arquivo para Setup da Rede
+        - name: Build Network configuration file
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh"
+            content: |
+                #!/bin/bash
+
+                # Interfaces:
+                IFACE_LAN_CONTROL=c-control
+                IFACE_LAN_DATA=c-data
+
+                iface_wan={{ physical_network_interface }}
+
+                # Params to configure NAT BR_DATA:
+                network_lan_data={{ NET_LAN_DATA }}
+
+                # Params to configure NAT BR_CONTROL:
+                network_lan_control={{ NET_LAN_CONTROL }}
+
+                # Configure BR_DATA:
+                echo "ADD Bridge data"
+                ovs-vsctl add-br br-data
+
+                echo "ADD Bridge data internet connection"
+                ovs-vsctl add-port br-data $IFACE_LAN_DATA -- set Interface $IFACE_LAN_DATA type=internal
+                ifconfig $IFACE_LAN_DATA $network_lan_data up
+
+                echo "1" > /proc/sys/net/ipv4/ip_forward
+
+                ovs-ofctl add-flow br-data ip,priority=2,cookie=2,actions=DROP
+                ovs-ofctl add-flow br-data ip,nw_src=$network_lan_data,nw_dst=$network_lan_data,priority=8,actions=NORMAL
+
+                # Configure BR_CONTROL:
+                echo "ADD Bridge control"
+                ovs-vsctl add-br br-control
+
+                echo "ADD Bridge control internet connection"
+                ovs-vsctl add-port br-control $IFACE_LAN_CONTROL -- set Interface $IFACE_LAN_CONTROL type=internal
+                ifconfig $IFACE_LAN_CONTROL $network_lan_control up
+
+                echo "1" > /proc/sys/net/ipv4/ip_forward
+
+                ovs-ofctl add-flow br-control ip,priority=2,cookie=2,actions=DROP
+                ovs-ofctl add-flow br-control ip,nw_src=$network_lan_control,nw_dst=$network_lan_control,priority=8,actions=NORMAL
+
+      # Construção do arquivo IPTables
+        - name: Build IPTables configuration file
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf/iptables-save"
+            content: |
+                # Generated by softway4iot - https://labora.inf.ufg.br/
+                *nat
+                :PREROUTING ACCEPT [1229:139684]
+                :INPUT ACCEPT [221:20282]
+                :OUTPUT ACCEPT [285:23620]
+                :POSTROUTING ACCEPT [19767:1192540]
+                :DOCKER - [0:0]
+                -A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+                -A PREROUTING -p tcp -m tcp --dport {{ API_SERVE_PORT }} -j DNAT --to-destination {{ IP_APISERVER_CONTAINER }}:{{ API_SERVE_PORT }}
+                -A PREROUTING -p tcp -m tcp --dport {{ websm_external_acess_port }} -j DNAT --to-destination {{ IP_WEBSM_CONTAINER }}:{{ WEBSM_CONTAINER_HTTPS_PORT }}
+                -A PREROUTING -p tcp -m tcp --dport {{ IOT_AGENT_SOUTH_PORT }} -j DNAT --to-destination {{ IP_IOTAGENT_CONTAINER }}:{{ IOT_AGENT_SOUTH_PORT }}
+                -A PREROUTING -p tcp -m tcp --dport {{ IOT_AGENT_NORTH_PORT }} -j DNAT --to-destination {{ IP_IOTAGENT_CONTAINER }}:{{ IOT_AGENT_NORTH_PORT }}
+                -A PREROUTING -p tcp -m tcp --dport {{ FIWARE_MANAGER_CONTAINER_PORT }} -j DNAT --to-destination {{ IP_FIWARE_MANAGER_CONTAINER }}:{{ FIWARE_MANAGER_CONTAINER_PORT }}
+                -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
+                -A POSTROUTING -s {{ DOCKER_LAN_DATA_CONTROL }} ! -o docker0 -j MASQUERADE
+                -A POSTROUTING -s {{ NET_LAN_DATA }} ! -d {{ NET_LAN_DATA }} -o {{ physical_network_interface }} -j MASQUERADE
+                -A POSTROUTING -s {{ NET_LAN_CONTROL }} ! -d {{ NET_LAN_CONTROL }} -o {{ physical_network_interface }} -j MASQUERADE
+                -A DOCKER -i docker0 -j RETURN
+                COMMIT
+               
+                # Generated by softway4iot - https://labora.inf.ufg.br/
+                *filter
+                :INPUT ACCEPT [1112915:702664399]
+                :FORWARD ACCEPT [20330:1219800]
+                :OUTPUT ACCEPT [1202580:125515551]
+                :DOCKER - [0:0]
+                :DOCKER-ISOLATION-STAGE-1 - [0:0]
+                :DOCKER-ISOLATION-STAGE-2 - [0:0]
+                :DOCKER-USER - [0:0]
+                -A FORWARD -j DOCKER-USER
+                -A FORWARD -j DOCKER-ISOLATION-STAGE-1
+                -A FORWARD -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+                -A FORWARD -o docker0 -j DOCKER
+                -A FORWARD -i docker0 ! -o docker0 -j ACCEPT
+                -A FORWARD -i docker0 -o docker0 -j ACCEPT
+                -A FORWARD -d {{ NET_LAN_DATA }} -i {{ physical_network_interface }} -o c-data -m state --state RELATED,ESTABLISHED -j ACCEPT
+                -A FORWARD -s {{ NET_LAN_DATA }} -i c-data -j ACCEPT
+                -A FORWARD -d {{ NET_LAN_CONTROL }} -i {{ physical_network_interface }} -o c-control -m state --state RELATED,ESTABLISHED -j ACCEPT
+                -A FORWARD -s {{ NET_LAN_CONTROL }} -i c-control -j ACCEPT
+                -A DOCKER-ISOLATION-STAGE-1 -i docker0 ! -o docker0 -j DOCKER-ISOLATION-STAGE-2
+                -A DOCKER-ISOLATION-STAGE-1 -j RETURN
+                -A DOCKER-ISOLATION-STAGE-2 -o docker0 -j DROP
+                -A DOCKER-ISOLATION-STAGE-2 -j RETURN
+                -A DOCKER-USER -j RETURN
+                COMMIT
+
+      # Executa script que realiza o Setup inicial da rede
+        - name: Network initial set up
+          shell:  |
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts/initial_setup_network.sh
+
+      # Configurações de Rede p/ Container ETCD
+        - name: Set up OVS ETCD container
+          shell:  |
+              sudo ovs-docker add-port br-control eth02 {{ ETCD_CONTAINER_NAME }} --ipaddress={{ IP_ETCD_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+
+      # Configura conexão entre os Containers WebSM e APIServer via ovs-docker
+        - name: Set up OVS WebSM and APIServer container connection
+          shell:  |
+              sudo ovs-docker add-port br-control eth02 {{ API_SERVER_CONTAINER_NAME }} --ipaddress={{ IP_APISERVER_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+              sudo ovs-docker add-port br-control eth02 {{ WEBSM_CONTAINER_NAME }} --ipaddress={{ IP_WEBSM_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+        
+      # Construção das regras de Entrada e saída para os containers WEBSM e APISERVER
+        - name: Build OVS inbound and outbound rules for WebSM and APIServer container's
+          shell:  |
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_APISERVER_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_APISERVER_CONTAINER }},priority=8,actions=NORMAL
+
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_WEBSM_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_WEBSM_CONTAINER }},priority=8,actions=NORMAL
+
+      # Inicializa serviço no container ETCD
+        - name: Init ETCD service container
+          shell:  |
+              docker exec -d {{ ETCD_CONTAINER_NAME }} etcd --name sw4iot --data-dir sw4iot --auto-tls --peer-auto-tls  --initial-advertise-peer-urls=http://{{ IP_ETCD_CONTAINER }}:{{ ETCD_PORT_NODES_CONNECT  }} --listen-peer-urls=http://{{ IP_ETCD_CONTAINER }}:{{ ETCD_PORT_NODES_CONNECT  }} --listen-client-urls http://{{ IP_ETCD_CONTAINER }}:{{ ETCD_PORT_CLIENTS_CONNECT  }} --advertise-client-urls http://{{ IP_ETCD_CONTAINER }}:{{ ETCD_PORT_CLIENTS_CONNECT  }}
+        
+      # Gera as chaves do DOCKER necessárias para o comunicação entre Orquestrador e Gateways
+        - name: Generate docker keys for communication between Orchestrator and Gateways
+          shell:  |
+              sudo chmod +x /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh 
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m ca -pw {{ password_gateways_connection }} -t certs -e 1000000
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m server -h softway4iot.labora.inf.ufg.br -pw {{ password_gateways_connection }} -t certs -e 1000000
+              sudo /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh -m client -h softway4iot-gatweway -pw {{ password_gateways_connection }} -t certs -e 1000000
+              
+      # Remove o arquivo que gera os certificados
+        - name: Remove create-certs.sh 
+          shell:  |
+              sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/create-certs.sh 
+
+      # Cópia de certificados p/ o container APIServer
+        - name: Install docker certs into APIServer
+          shell:  |
+              docker cp /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/. {{ API_SERVER_CONTAINER_NAME }}:/apiserver/conf
+      
+      ####################################################################
+      ####################################################################
+      #########         IMPLANTAÇÃO FIWARE (opcional)         ############
+      ####################################################################
+      ####################################################################
+
+      # Diretório de configuração Softway - FIWARE
+        - name : Build Fiware dirs for softway4iot
+          become: yes
+          when: fiware_deploy == 'true'
+          shell:  |
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager
+
+      # Arquivo de configuração IOTAgent
+        - name: Build IOTAgent configuration file
+          when: fiware_deploy == 'true'
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/config.js"
+            content: |
+              
+                var config = {};
+                config.mqtt = {
+                    host: 'localhost',
+                    port: 1883,
+                    thinkingThingsPlugin: true,
+                    qos: 0,
+                    retain: false,
+                    retries: 5,
+                    retryTime: 5,
+                    keepalive: 0
+                };
+                config.amqp = {
+                    host: 'localhost',
+                    port: 5672,
+                    exchange: 'iota-exchange',
+                    queue: 'iotaqueue',
+                    options: { durable: true }
+                };
+                config.http = {
+                    port: {{ IOT_AGENT_SOUTH_PORT }}
+                };
+                config.iota = {
+                    logLevel: 'DEBUG',
+                    timestamp: true,
+                    contextBroker: {
+                        host: '{{ HOST_ORION }}',
+                        port: {{ PORT_ORION }}
+                    },
+                    server: {
+                        port: {{ IOT_AGENT_NORTH_PORT }}
+                    },
+                    deviceRegistry: {
+                        type: 'mongodb'
+                    },
+                    mongodb: {
+                        host: '{{ HOST_MONGODB }}',
+                        port: {{ PORT_MONGODB }},
+                        db: 'iotagentjson'
+                    },
+                    types: {},
+                    service: 'howtoservice',
+                    subservice: '/howto',
+                   
+                    providerUrl: 'http://{{ ansible_default_ipv4.address }}:{{ IOT_AGENT_NORTH_PORT }}',
+                   
+                    deviceRegistrationDuration: 'P1M',
+                    defaultType: 'Thing',
+                    defaultResource: '/iot/json'
+                };
+
+                config.configRetrieval = false;
+                config.defaultKey = '{{ DEFAULT_API_KEY_IOT_AGENT }}';
+                config.defaultTransport = 'HTTP';
+                module.exports = config;
+     
+      # Implantação do IOTAgent via Docker container
+        - name : IOTAgent deployment with Docker Hub
+          when: fiware_deploy == 'true'
+          shell:  |
+              docker run --net=none --init -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/config.js:/opt/iotajson/config.js  --name={{ IO_AGENT_CONTAINER_NAME }} -d fiware/iotagent-json -- config.js
+      
+      # Configura conexão do Container IOTAgent via ovs-docker
+        - name: Set up OVS IOTAgent container connection
+          when: fiware_deploy == 'true'
+          shell:  |
+              sudo ovs-docker add-port br-control eth02 {{ IO_AGENT_CONTAINER_NAME }} --ipaddress={{ IP_IOTAGENT_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+        
+      # Construção das regras de Entrada e saída para o container IOTAgent
+        - name: Build OVS inbound and outbound rules for IOTAgent container
+          when: fiware_deploy == 'true'
+          shell:  |
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_IOTAGENT_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_IOTAGENT_CONTAINER }},priority=8,actions=NORMAL
+              
+      # Arquivo de configuração FIWARE-Manager
+        - name: Build Fiware-Manger configuration file
+          when: fiware_deploy == 'true'
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js"
+            content: |
+              
+                managerConfig = {
+                    server: {
+                        host: '0.0.0.0',
+                        port: {{ FIWARE_MANAGER_CONTAINER_PORT }}
+                    },
+                    iotagent: {
+                        host : '{{ IP_IOTAGENT_CONTAINER }}',
+                        northport: {{ IOT_AGENT_NORTH_PORT }}
+                    },
+
+                    /* IMPLEMENTACAO FUTURA DE INTEGRACAO COM ETCD - ALTERAR PLAYBOOK */
+                    etcd: {
+                        host: 'localhost',
+                        port: '2379',
+                        user: 'abc',
+                        password: '123'
+                    },
+                    devicesapp: {
+                        host: 'localhost',
+                        port: '2000'
+                    } 
+                }
+
+                module.exports = managerConfig;
+
+      # Implantação do Fiware-Manager via Docker container
+        - name : Fiware-Manager deployment with Docker Hub
+          when: fiware_deploy == 'true'
+          shell:  |
+              docker run --net=none --init -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/fiware/manager/config.js:/SOFTWAY4IOT-F3-FiwareManager/config.js  --name={{ FIWARE_MANAGER_CONTAINER_NAME }} -d sw4iot/softway4iot-f3-fiwaremanager:1.0
+       
+      # Configura conexão do Container IOTAgent via ovs-docker
+        - name: Setup OVS Fiware-Manager container connection
+          shell:  |
+              sudo ovs-docker add-port br-control eth02 {{ FIWARE_MANAGER_CONTAINER_NAME }} --ipaddress={{ IP_FIWARE_MANAGER_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
+        
+      # Construção das regras de Entrada e saída para o container Fiware-Manager
+        - name: Build OVS inbound and outbound rules for Fiware-Manager container
+          shell:  |
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_FIWARE_MANAGER_CONTAINER }},priority=8,actions=NORMAL
+    
+      ####################################################################
+      ####################################################################
+      ####### IMPLANTAÇÃO NETMANGER + ORQUESTRADOR + COMMONS  ############
+      ####################################################################
+      ####################################################################
+
+      # Download do Commons
+        - name: Softway Commons download
+          get_url: 
+            url="{{ SOFTWAY_COMMONS_DEB_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb"
+
+      # Instalação Commons
+        - name: Softway Commons install
+          shell: |
+              sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
+              sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-commons.deb
+
+      # Download do Orquestrador
+        - name: Orchestrator download
+          get_url: 
+            url="{{ ORQUESTRADOR_DEB_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb"
+
+      # Instalação Orquestrador
+        - name: Orchestrator install
+          shell: |
+                sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb
+                sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-orch.deb
+
+      # Download NetManager
+        - name: NetManger download
+          get_url: 
+            url="{{ NET_MANAGER_DEB_URL }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb"
+
+      # Instalação NetManager
+        - name: NetManger install
+          shell: |
+                  sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb
+                  sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-netmanager.deb
+
+      # Atribuição de permissões NetManager
+        - name: Add NetManager permissions
+          shell: |
+              echo '{{ user_name }} ALL=(ALL:ALL) NOPASSWD:/usr/bin/ovs-docker
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/usr/bin/ovs-vsctl
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables-restore
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables-save
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables' | sudo EDITOR='tee -a' visudo
+
+      # Inicializa NetManager
+        - name: NetManager initialize
+          shell: |
+              sudo /etc/init.d/net-manager start
+
+      # Inicializa Orquestrador
+        - name: Orchestrator initialize
+          shell: |
+              sudo /etc/init.d/orch start
+
+    # Informa o TimeZone p/ melhorar o registro de log
+        - name: Set TimeZone
+          ignore_errors: yes
+          shell: |
+              sudo cp /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+
+      
+        
+
