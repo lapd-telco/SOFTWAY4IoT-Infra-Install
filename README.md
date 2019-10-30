@@ -18,17 +18,16 @@ The whole installation process is based on using [Ansilble](https://www.ansible.
 To deploy a gateway manager you must edit the `hosts` file adding:
 
 ```
-    [sw4iot-manager]
-    <gateway-manager-IP-address> physical_network_interface=<manager-machine-interface-name> user_name=<username-of-the-manager-machine>
+  [sw4iot-manager]
+  <gateway-manager-IP-address> physical_network_interface=<manager-machine-interface-name> user_name=<username-of-the-manager-machine>
 ```
 
-After entering the connection parameters, just run the deployment playbook using ansible:
-
+After entering the connection parameters, just run the gateway manager deployment playbook with ansible:
 ```
-    ansible-playbook -v  manager.yml -i hosts
+  ansible-playbook -v  manager.yml -i hosts
 ```
 
-
+The previous command will deploy the gateway manager using default parameters, for example, the fireware.
 
 ```
     ansible-playbook -v  manager.yml -i hosts -e "fiware_deploy=true  remove_etcd_data=true websm_external_acess_port=8080"
