@@ -3,6 +3,7 @@
     become: yes
     remote_user: root
     vars:
+        SOFTWAY_VERSION: '1.0'
         BASE_DIR_INSTALL: 'opt'
         DIR_INSTALL_SOFTWAY: 'softway4iot'
         GATEWAY_URL_REGISTER: '/v1/'
@@ -178,13 +179,14 @@
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
      
-      # Construção do arquivo de configuração
+      # Construção do arquivo de configuração Softway
         - name: Build softway4iot config file
           copy:
             dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
             content: |
                 NUMBER_GATEWAY_CONTROLL={{ number_gateway_control }}
                 PHYSICAL_NETWORK_INTERFACE={{ physical_network_interface }}
+                SOFTWAY4IOT_VERSION_NUMBER={{ SOFTWAY_VERSION }}
 
       # Adiciona chaves + repositório Docker
         - name: Add Docker GPG key into apt
@@ -297,7 +299,6 @@
           shell: sudo tar -xvf orch_gw.tar.gz --strip-components 1
           args:
             chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch/
-
 
       # Atribuição de permissões NetManager
         - name: Add NetManager permissions

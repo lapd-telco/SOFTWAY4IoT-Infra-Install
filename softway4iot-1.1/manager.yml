@@ -3,7 +3,7 @@
     become: yes
     remote_user: root
     vars:
-        
+        SOFTWAY_VERSION: '1.1'
         API_SERVE_PORT: '5000'
         BASE_DIR_INSTALL : "opt"
         DIR_INSTALL_SOFTWAY: 'softway4iot'
@@ -237,6 +237,13 @@
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
               sudo chmod -R 777 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
+
+      # Construção do arquivo de configuração Softway
+        - name: Build softway4iot config file
+          copy:
+            dest: "/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf.softway4iot"
+            content: |
+                SOFTWAY4IOT_VERSION_NUMBER={{ SOFTWAY_VERSION }}
 
       # Cria arquivo de dados ETCD
         - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db
