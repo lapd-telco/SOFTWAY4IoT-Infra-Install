@@ -27,8 +27,7 @@ After entering the connection parameters, just run the gateway manager deploymen
   ansible-playbook -v  manager.yml -i hosts
 ```
 
-The previous command will deploy the gateway manager using default parameters, for example, the fireware.
-
+The previous command will deploy the gateway manager using default parameters, for example, the [fireware infrastructure](https://www.fiware.org/) will not be deployed, the `etcd database` from any previous Softway version will be preserved  and the `WebSM` access port will be 8080.
 ```
     ansible-playbook -v  manager.yml -i hosts -e "fiware_deploy=true  remove_etcd_data=true websm_external_acess_port=8080"
 ```
