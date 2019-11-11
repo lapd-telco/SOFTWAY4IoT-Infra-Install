@@ -40,7 +40,7 @@
             msg: "Número de controle para o Gateway deve ser maior que 1"
           when: number_gateway_control == '1'
 
-       # Remove todos as possíveis referências de uma instalação anterior Softway
+      # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 1/2
           become: yes
           ignore_errors: yes
@@ -48,7 +48,7 @@
               sudo ovs-vsctl del-br br-data
               sudo ovs-vsctl del-br br-control
 
-       # Remove todos as possíveis referências de uma instalação anterior Softway
+      # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 1/9
           become: yes
           ignore_errors: yes
