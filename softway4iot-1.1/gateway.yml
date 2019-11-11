@@ -12,6 +12,7 @@
         SOFTWAY_ORCH_GW_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_gw_1.0.0.tar.gz'
         SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
+        SOFTWAY_NET_MAN_GW: "https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager-gw_1.1.0_amd64.deb"
     tasks:
        
       # Validação de variáveis obrigatória
@@ -118,7 +119,7 @@
         - name: Install VPN and OPENVSWITCH requirements
           apt:
               name: ['unzip', 'iptables', 'net-tools','wget', 'strongswan', 'openvswitch-switch', 'python3-pip', 'apt-transport-https','ca-certificates','curl','gnupg2','software-properties-common']
-              update_cache: yes
+              update_cache: no
 
       # Remove todos as possíveis referências existentes em IPTables
         - name : Clear IPTables
@@ -130,13 +131,13 @@
               iptables --delete-chain
               iptables --table nat --delete-chain  
 
-      # Atualização de pacotes do SO via APT
-        - name: APT Update
-          become: true
-          apt:
-            upgrade: yes
-            update_cache: yes
-            cache_valid_time: 86400 #One day
+      # # Atualização de pacotes do SO via APT
+      #   - name: APT Update
+      #     become: true
+      #     apt:
+      #       upgrade: yes
+      #       update_cache: yes
+      #       cache_valid_time: 86400 #One day
 
       # Instala os requisitos mínimos de python para o correto funcionamento do Ansible
         - name : Install python minimun requirements
@@ -241,7 +242,7 @@
                 iptables -A FORWARD -d $network_lan_data -i $iface_wan -o $IFACE_LAN_DATA -m state --state RELATED,ESTABLISHED -j ACCEPT
                 iptables -A FORWARD -s $network_lan_data -i $IFACE_LAN_DATA -j ACCEPT
 
-                ovs-ofctl add-flow br-data ip,priority=2,actions=DROP
+                ovs-ofctl add-flow br-data ip,priority=2,cookie=2,actions=DROP
                 ovs-ofctl add-flow br-data ip,nw_src=$network_lan_data,nw_dst=$network_lan_data,priority=8,actions=NORMAL
 
                 # Configure BR_CONTROL:
@@ -256,7 +257,7 @@
                 iptables -A FORWARD -d $network_lan_control -i $iface_wan -o $IFACE_LAN_CONTROL -m state --state RELATED,ESTABLISHED -j ACCEPT
                 iptables -A FORWARD -s $network_lan_control -i $IFACE_LAN_CONTROL -j ACCEPT
 
-                ovs-ofctl add-flow br-control ip,priority=2,actions=DROP
+                ovs-ofctl add-flow br-control ip,priority=2,cookie=2,actions=DROP
                 ovs-ofctl add-flow br-control ip,nw_src=$network_lan_control,nw_dst=$network_lan_control,priority=8,actions=NORMAL
 
       # Construção do arquivo de configuração DOCKER
@@ -305,6 +306,15 @@
         - name: Add NetManager permissions
           shell: |
               echo '{{ user_name }} ALL=(ALL:ALL) NOPASSWD:/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch/setup_vpn_gw.sh' | sudo EDITOR='tee -a' visudo
+      
+      # Atribuição de permissões NetManager
+        - name: Add NetManager permissions
+          shell: |
+              echo '{{ user_name }} ALL=(ALL:ALL) NOPASSWD:/usr/bin/ovs-docker
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/usr/bin/ovs-vsctl
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables-restore
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables-save
+              {{ user_name }} ALL=(ALL:ALL) NOPASSWD:/sbin/iptables' | sudo EDITOR='tee -a' visudo
 
        # Download do Commons
         - name: Softway Commons download
@@ -334,6 +344,23 @@
         - name: Interface Monitor init
           shell: |
               sudo /etc/init.d/interface-monitor start
+
+       # Download Net_managerGw
+        - name: Softway Interface Monitor download
+          get_url: 
+            url="{{ SOFTWAY_NET_MAN_GW }}"
+            dest="/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-net-manager-gw.deb"
+
+      # Instalação Net_managerGw
+        - name: Softway Interface Monitor install
+          shell: |
+              sudo dpkg -i /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-net-manager-gw.deb
+              sudo rm /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads/softway-net-manager-gw.deb
+
+      # Inicializa Net_managerGw
+        - name: Net-Manager-gw start
+          shell: |
+              sudo /etc/init.d/net-manager-gw start
 
       # Executa o orquestrador do Gateway -
         - name: Softway Orch Init - With NAT

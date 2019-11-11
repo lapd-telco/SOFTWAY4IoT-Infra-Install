@@ -41,9 +41,9 @@
         #porta que será exposta e redirecionada para a porta em que o container WEBsm está respondendo, geralmente 443
         websm_external_acess_port : '8080'
         
-        NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager_1.0.0_amd64.deb'
-        ORQUESTRADOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_1.0.0_amd64.deb'
-        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
+        NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager_1.1.0_amd64.deb'
+        ORQUESTRADOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_1.1.0_amd64.deb'
+        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.1.0_amd64.deb'
         
         #INTEGRAÇÃO FIWARE
         IOT_AGENT_SOUTH_PORT : '7896'
@@ -575,7 +575,7 @@
               sudo ovs-docker add-port br-control eth02 {{ API_SERVER_CONTAINER_NAME }} --ipaddress={{ IP_APISERVER_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
               sudo ovs-docker add-port br-control eth02 {{ WEBSM_CONTAINER_NAME }} --ipaddress={{ IP_WEBSM_CONTAINER }}/{{ HOSTS_MASK }} --gateway={{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }} --mtu={{ MAXIMUM_TRANSMISSION_UNIT }}
         
-      # Construção das regras de Entrada e saída para os containers WEBSM e APISERVER
+      # Construção das regras de Entrada e saída para os containers WEBSM e APISERVER e ETCD
         - name: Build OVS inbound and outbound rules for WebSM and APIServer container's
           shell:  |
               ovs-ofctl add-flow br-control ip,nw_dst={{ IP_APISERVER_CONTAINER }},priority=8,actions=NORMAL
@@ -583,6 +583,9 @@
 
               ovs-ofctl add-flow br-control ip,nw_dst={{ IP_WEBSM_CONTAINER }},priority=8,actions=NORMAL
               ovs-ofctl add-flow br-control ip,nw_src={{ IP_WEBSM_CONTAINER }},priority=8,actions=NORMAL
+
+              ovs-ofctl add-flow br-control ip,nw_dst={{ IP_ETCD_CONTAINER }},priority=8,actions=NORMAL
+              ovs-ofctl add-flow br-control ip,nw_src={{ IP_ETCD_CONTAINER }},priority=8,actions=NORMAL
 
       # Inicializa serviço no container ETCD
         - name: Init ETCD service container
@@ -607,6 +610,21 @@
           shell:  |
               docker cp /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/. {{ API_SERVER_CONTAINER_NAME }}:/apiserver/conf
       
+
+      # Cria arquivo de setup da rede 
+        - name: Create file of setup network
+          shell:  |
+              cat >> /etc/network/interfaces << EOF
+                auto c-control
+                iface c-control inet static
+                address 10.250.1.1
+                netmask 255.255.255.0
+
+                auto c-data
+                iface c-data inet static
+                address 10.249.1.1
+                netmask 255.255.255.0
+              
       ####################################################################
       ####################################################################
       #########         IMPLANTAÇÃO FIWARE (opcional)         ############
