@@ -107,13 +107,6 @@
               sudo rm -r /usr/bin/ovs-docker
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
-        - name : Remove ovs-docker and openvswitch 6/9
-          become: yes
-          ignore_errors: yes
-          shell:  |
-              sudo  kill -9 $ (pidof sudo dockerd)
-
-      # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 7/9
           become: yes
           ignore_errors: yes
@@ -610,7 +603,6 @@
           shell:  |
               docker cp /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs/. {{ API_SERVER_CONTAINER_NAME }}:/apiserver/conf
       
-
       # Cria arquivo de setup da rede 
         - name: Create file of setup network
           shell:  |
@@ -686,8 +678,8 @@
                         db: 'iotagentjson'
                     },
                     types: {},
-                    service: 'howtoservice',
-                    subservice: '/howto',
+                    service: 'sw4iotservice',
+                    subservice: '/sw4iot',
                    
                     providerUrl: 'http://{{ ansible_default_ipv4.address }}:{{ IOT_AGENT_NORTH_PORT }}',
                    
@@ -735,19 +727,7 @@
                     iotagent: {
                         host : '{{ IP_IOTAGENT_CONTAINER }}',
                         northport: {{ IOT_AGENT_NORTH_PORT }}
-                    },
-
-                    /* IMPLEMENTACAO FUTURA DE INTEGRACAO COM ETCD - ALTERAR PLAYBOOK */
-                    etcd: {
-                        host: 'localhost',
-                        port: '2379',
-                        user: 'abc',
-                        password: '123'
-                    },
-                    devicesapp: {
-                        host: 'localhost',
-                        port: '2000'
-                    } 
+                    }
                 }
 
                 module.exports = managerConfig;
@@ -830,7 +810,7 @@
           shell: |
               sudo /etc/init.d/orch start
 
-    # Informa o TimeZone p/ melhorar o registro de log
+      # Informa o TimeZone p/ melhorar o registro de log
         - name: Set TimeZone
           ignore_errors: yes
           shell: |

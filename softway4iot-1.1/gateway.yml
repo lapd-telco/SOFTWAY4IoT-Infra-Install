@@ -90,7 +90,7 @@
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo  kill -9 $(pidof sudo dockerd)
+              sudo  kill -9 $(pidof dockerd)
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 7/9
@@ -300,7 +300,6 @@
           shell: sudo tar -xvf orch_gw.tar.gz --strip-components 1
           args:
             chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch/
-
 
       # Atribuição de permissões NetManager
         - name: Add NetManager permissions
