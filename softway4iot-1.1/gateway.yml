@@ -9,8 +9,8 @@
         GATEWAY_URL_REGISTER: '/v1/'
         FLESK_PORT_MANAGER: 5000
         IP_ETCD_CONTAINER: '10.250.1.4'
-        SOFTWAY_ORCH_GW_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_gw_1.0.0.tar.gz'
-        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.0.0_amd64.deb'
+        SOFTWAY_ORCH_GW_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_gw_1.1.0.tar.gz'
+        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.1.0_amd64.deb'
         INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/interface_monitor_1.0.0_amd64.deb'
         SOFTWAY_NET_MAN_GW: "https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager-gw_1.1.0_amd64.deb"
     tasks:
@@ -175,6 +175,7 @@
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/scripts
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/downloads
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/logs
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/conf
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/docker_certs
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
@@ -361,6 +362,12 @@
           shell: |
               sudo /etc/init.d/net-manager-gw start
 
+      # Adiciona modulos na inicializacao
+        - name: Add interface-monitor and net-manager to start
+          shell: |
+              sudo ln -s /etc/init.d/net-manager-gw /etc/rc2.d/S99net-manager-gw
+              sudo ln -s /etc/init.d/interface-monitor /etc/rc2.d/S99interface-monitor
+
       # Executa o orquestrador do Gateway -
         - name: Softway Orch Init - With NAT
           when: network_address_translation_ip_gateway is defined
@@ -371,7 +378,7 @@
             chdir: /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/orch
 
       # Executa o orquestrador do Gateway
-        - name: Softway Orch Init - WithOut
+        - name: Softway Orch Init - WithOut NAT
           when: network_address_translation_ip_gateway is undefined
           shell: |
               sudo chmod +x setup_vpn_gw.sh

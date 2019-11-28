@@ -520,8 +520,8 @@
                 -A PREROUTING -p tcp -m tcp --dport {{ FIWARE_MANAGER_CONTAINER_PORT }} -j DNAT --to-destination {{ IP_FIWARE_MANAGER_CONTAINER }}:{{ FIWARE_MANAGER_CONTAINER_PORT }}
                 -A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
                 -A POSTROUTING -s {{ DOCKER_LAN_DATA_CONTROL }} ! -o docker0 -j MASQUERADE
-                -A POSTROUTING -s {{ NET_LAN_DATA }} ! -d {{ NET_LAN_DATA }} -o {{ physical_network_interface }} -j MASQUERADE
-                -A POSTROUTING -s {{ NET_LAN_CONTROL }} ! -d {{ NET_LAN_CONTROL }} -o {{ physical_network_interface }} -j MASQUERADE
+                -A POSTROUTING -s {{ NET_LAN_DATA }} ! -d {{ IP_GATEWAY_MANAGER_BRIDGE_DATA }}/16 -o {{ physical_network_interface }} -j MASQUERADE
+                -A POSTROUTING -s {{ NET_LAN_CONTROL }} ! -d {{ IP_GATEWAY_MANAGER_BRIDGE_CONTROL }}/16 -o {{ physical_network_interface }} -j MASQUERADE
                 -A DOCKER -i docker0 -j RETURN
                 COMMIT
                
@@ -809,6 +809,12 @@
         - name: Orchestrator initialize
           shell: |
               sudo /etc/init.d/orch start
+
+      # Adiciona modulos na inicialização
+        - name: Add orch and net-manager to start
+          shell: |
+              sudo ln -s /etc/init.d/net-manager /etc/rc2.d/S99net-manager
+              sudo ln -s /etc/init.d/orch /etc/rc2.d/S99orch
 
       # Informa o TimeZone p/ melhorar o registro de log
         - name: Set TimeZone
