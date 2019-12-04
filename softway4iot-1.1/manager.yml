@@ -48,10 +48,10 @@
         #INTEGRAÇÃO FIWARE
         IOT_AGENT_SOUTH_PORT : '7896'
         IOT_AGENT_NORTH_PORT : '4041'
-        HOST_ORION: '200.143.200.6' 
-        PORT_ORION: '8006'
-        HOST_MONGODB: '200.143.200.6' 
-        PORT_MONGODB: '8005'
+        HOST_ORION: '200.129.207.169' 
+        PORT_ORION: '1026'
+        HOST_MONGODB: '200.129.207.169' 
+        PORT_MONGODB: '27017'
         DEFAULT_API_KEY_IOT_AGENT : '123'
 
         fiware_deploy: 'false'
@@ -229,6 +229,13 @@
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/certs
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/vpn_keys
               sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures/clients
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures/peer
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/snap
+              sudo mkdir /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/wal
               sudo chmod -R 777 /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}
 
       # Construção do arquivo de configuração Softway
@@ -239,15 +246,59 @@
                 SOFTWAY4IOT_VERSION_NUMBER={{ SOFTWAY_VERSION }}
 
       # Cria arquivo de dados ETCD
-        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/snap/db
           register: p
 
-        - name: Build softway4iot ETCD file data storage
-          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db 
+        - name: Build softway4iot ETCD file [ 1 / 5 ]
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/snap/db 
                 owner=root
                 group=sys
                 mode=0555
-                state={{ "file" if  p.stat.exists else "touch"}}        
+                state={{ "file" if  p.stat.exists else "touch"}}     
+
+      # Cria arquivo de Cert ETCD
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures/clients/cert.pem
+          register: cert
+
+        - name: Build softway4iot ETCD  file [ 2 / 5 ]
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures/clients/cert.pem
+                owner=root
+                group=sys
+                mode=0555
+                state={{ "file" if  cert.stat.exists else "touch"}}        
+
+      # Cria arquivo de Cert ETCD
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures/clients/key.pem
+          register: key
+
+        - name: Build softway4iot ETCD  file [ 3 / 5 ]
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/fixtures/clients/key.pem
+                owner=root
+                group=sys
+                mode=0555
+                state={{ "file" if  key.stat.exists else "touch"}}   
+
+      # Cria arquivo de Cert ETCD
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/wal/0.tmp
+          register: zero
+
+        - name: Build softway4iot ETCD  file [ 4 / 5 ]
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/wal/0.tmp
+                owner=root
+                group=sys
+                mode=0555
+                state={{ "file" if  zero.stat.exists else "touch"}}   
+
+      # Cria arquivo de Cert ETCD
+        - stat: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/wal/0000000000000000-0000000000000000.wal
+          register: dezesseiszeros
+
+        - name: Build softway4iot ETCD  file [ 5 / 5 ]
+          file: path=/{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot/members/wal/0000000000000000-0000000000000000.wal
+                owner=root
+                group=sys
+                mode=0555
+                state={{ "file" if  dezesseiszeros.stat.exists else "touch"}} 
      
       # Adiciona chaves + repositório Docker
         - name: Add Docker GPG key into apt
@@ -453,7 +504,7 @@
           shell:  |
               docker run --net=none --name={{ API_SERVER_CONTAINER_NAME }} -d sw4iot/apiserver:1.0
               docker run --net=none --name={{ WEBSM_CONTAINER_NAME }} -d sw4iot/websm:1.0
-              docker run --net=none -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/db:/sw4iot/member/snap/db --name={{ ETCD_CONTAINER_NAME }} -d sw4iot/etcd:1.0 
+              docker run --net=none -v /{{ BASE_DIR_INSTALL }}/{{ DIR_INSTALL_SOFTWAY }}/etcd_data/sw4iot:/sw4iot --name={{ ETCD_CONTAINER_NAME }} -d sw4iot/etcd:1.0 
 
       # Construção do arquivo para Setup da Rede
         - name: Build Network configuration file

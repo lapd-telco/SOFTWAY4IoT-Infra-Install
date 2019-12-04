@@ -45,6 +45,7 @@
           become: yes
           ignore_errors: yes
           shell:  |
+              sudo apt-get -f install
               sudo ovs-vsctl del-br br-data
               sudo ovs-vsctl del-br br-control
 
@@ -74,7 +75,7 @@
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo apt-get auto-remove -y --purge strongswan
+              sudo apt-get auto-remove -y strongswan
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
         - name : Remove ovs-docker and openvswitch 5/9
@@ -82,7 +83,7 @@
           ignore_errors: yes
           shell:  |
               sudo apt-get purge -y openvswitch-switch
-              sudo apt-get auto-remove -y --purge openvswitch-switch
+              sudo apt-get auto-remove -y openvswitch-switch
               sudo rm -r /usr/bin/ovs-docker
 
       # Remove todos as possíveis referências de uma instalação anterior Softway
@@ -131,13 +132,13 @@
               iptables --delete-chain
               iptables --table nat --delete-chain  
 
-      # # Atualização de pacotes do SO via APT
-      #   - name: APT Update
-      #     become: true
-      #     apt:
-      #       upgrade: yes
-      #       update_cache: yes
-      #       cache_valid_time: 86400 #One day
+       Atualização de pacotes do SO via APT
+        - name: APT Update
+          become: true
+          apt:
+            upgrade: yes
+            update_cache: yes
+            cache_valid_time: 86400 #One day
 
       # Instala os requisitos mínimos de python para o correto funcionamento do Ansible
         - name : Install python minimun requirements
