@@ -41,9 +41,9 @@
         #porta que será exposta e redirecionada para a porta em que o container WEBsm está respondendo, geralmente 443
         websm_external_acess_port : '8080'
         
-        NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/net-manager_1.1.0_amd64.deb'
-        ORQUESTRADOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/orch_1.1.0_amd64.deb'
-        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/softway4iot-1.0/install/database_1.1.0_amd64.deb'
+        NET_MANAGER_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/net-manager_1.1.0_amd64.deb'
+        ORQUESTRADOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/orch_1.1.0_amd64.deb'
+        SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/database_1.1.0_amd64.deb'
         
         #INTEGRAÇÃO FIWARE
         IOT_AGENT_SOUTH_PORT : '7896'
