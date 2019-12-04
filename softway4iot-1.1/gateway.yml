@@ -11,8 +11,8 @@
         IP_ETCD_CONTAINER: '10.250.1.4'
         SOFTWAY_ORCH_GW_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/orch_gw_1.1.0.tar.gz'
         SOFTWAY_COMMONS_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/database_1.1.0_amd64.deb'
-        INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/interface_monitor_1.0.0_amd64.deb'
         DRIVER_LORA_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/lora-driver_1.1.0_amd64.deb'
+        INTERFACE_MONITOR_DEB_URL: 'https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/interface_monitor_1.0.0_amd64.deb'
         SOFTWAY_NET_MAN_GW: "https://github.com/LABORA-INF-UFG/SOFTWAY4IoT-Infra-Install/raw/master/install/net-manager-gw_1.1.0_amd64.deb"
     tasks:
        
