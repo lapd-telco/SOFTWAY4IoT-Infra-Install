@@ -132,7 +132,7 @@
               iptables --delete-chain
               iptables --table nat --delete-chain  
 
-       Atualização de pacotes do SO via APT
+      # Atualização de pacotes do SO via APT
         - name: APT Update
           become: true
           apt:
