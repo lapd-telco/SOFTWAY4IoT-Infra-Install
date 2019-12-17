@@ -46,7 +46,7 @@
           become: yes
           ignore_errors: yes
           shell:  |
-              sudo apt-get -f install
+              sudo apt-get -f install -y
               sudo ovs-vsctl del-br br-data
               sudo ovs-vsctl del-br br-control
 
